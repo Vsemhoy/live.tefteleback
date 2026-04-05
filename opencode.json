@@ -1,0 +1,54 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "provider": {
+    "lmstudio": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "LM Studio Local 🔥",
+      "options": {
+        "baseURL": "http://localhost:1234/v1",
+        "apiKey": "lm-studio"
+      },
+      "models": {
+        "qwen/qwen3-coder-next": {
+          "name": "Next-Qwen"
+        },
+        "qwen/qwen3-coder-480b": {
+          "name": "Qwen-Coder-480"
+        },
+        
+        "minimax/minimax-m2.5": {
+          "name": "MiniMax 120b"
+        },
+        "zai-org/glm-4.7-flash": {
+          "name": "GLM-glash 31"
+        },
+        "minimax-m2-thrift-55-i1": {
+          "name": "MINIMAX-40"
+        },
+        "userb1az/deepseek-coder-v2-lite-instruct": {
+          "name": "DeepSeec coder V2 LI"
+        },
+        "devstral-small-2-24b-instruct-2512": {
+          "name": "DevStral 15"
+        }
+
+      }
+    },
+    "teftele-gon": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "LM Studio Global 🔥",
+      "options": {
+        "baseURL": "http://188.242.216.203:57322/v1",
+        "apiKey": "lm-studio"
+      },
+      "models": {
+        "qwen/qwen3-coder-next": {
+          "name": "Qwen3-next-code 49"
+        }
+
+      }
+    }
+  },
+
+  "model": "lmstudio/minimax-m2"
+}

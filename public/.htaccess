@@ -1,0 +1,82 @@
+# <IfModule mod_rewrite.c>
+#     <IfModule mod_negotiation.c>
+#         Options -MultiViews -Indexes
+#     </IfModule>
+
+#     RewriteEngine On
+
+#     # Handle Authorization Header
+#     RewriteCond %{HTTP:Authorization} .
+#     RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+#     # Handle X-XSRF-Token Header
+#     RewriteCond %{HTTP:x-xsrf-token} .
+#     RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
+
+#     # Redirect Trailing Slashes If Not A Folder...
+#     RewriteCond %{REQUEST_FILENAME} !-d
+#     RewriteCond %{REQUEST_URI} (.+)/$
+#     RewriteRule ^ %1 [L,R=301]
+
+#     # Send Requests To Front Controller...
+#     RewriteCond %{REQUEST_FILENAME} !-d
+#     RewriteCond %{REQUEST_FILENAME} !-f
+#     RewriteRule ^ index.php [L]
+# </IfModule>
+<IfModule mod_rewrite.c>
+    <IfModule mod_negotiation.c>
+        Options -MultiViews -Indexes
+    </IfModule>
+
+    RewriteEngine On
+
+    # CORS HEADERS
+    # <IfModule mod_headers.c>
+    #     Header Set Access-Control-Allow-Origin "http://localhost:3002"
+    #     Header Set Access-Control-Allow-Credentials "true"
+    #     Header Set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    #     Header Set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With, X-XSRF-Token"
+        
+    #     # Обработка preflight-запросов
+    #     RewriteCond %{REQUEST_METHOD} OPTIONS
+    #     RewriteRule ^(.*)$ $1 [R=200,L]
+    # </IfModule>
+
+    # <IfModule mod_headers.c>
+    #     Header Set Access-Control-Allow-Origin "http://localhost:3002"
+    #     Header Set Access-Control-Allow-Credentials "true"
+    #     Header Set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS"
+    #     Header Set Access-Control-Allow-Headers "Content-Type, Authorization, X-Requested-With"
+    # </IfModule>
+    
+    # Header unset Access-Control-Allow-Origin
+    # Handle Authorization Header
+    RewriteCond %{HTTP:Authorization} .
+    RewriteRule .* - [E=HTTP_AUTHORIZATION:%{HTTP:Authorization}]
+
+    # Handle X-XSRF-Token Header
+    RewriteCond %{HTTP:x-xsrf-token} .
+    RewriteRule .* - [E=HTTP_X_XSRF_TOKEN:%{HTTP:X-XSRF-Token}]
+
+    # Redirect Trailing Slashes If Not A Folder...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_URI} (.+)/$
+    RewriteRule ^ %1 [L,R=301]
+
+    # Send Requests To Front Controller...
+    RewriteCond %{REQUEST_FILENAME} !-d
+    RewriteCond %{REQUEST_FILENAME} !-f
+    RewriteRule ^ index.php [L]
+
+    # RewriteCond %{REQUEST_METHOD} OPTIONS
+    # RewriteRule ^(.*)$ $1 [R=204,L]
+
+    # RewriteCond %{REQUEST_METHOD} GET
+    # RewriteRule ^(.*)$ $1 [R=204,L]
+
+    # <IfModule mod_headers.c>
+    #     Header unset Access-Control-Allow-Origin
+    #     Header unset Access-Control-Allow-Methods
+    #     Header unset Access-Control-Allow-Headers
+    # </IfModule>
+</IfModule>
