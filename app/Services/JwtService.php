@@ -8,6 +8,7 @@ use Firebase\JWT\Key;
 class JwtService
 {
     private string $secretKey;
+
     private string $algorithm = 'HS256';
 
     public function __construct()
@@ -19,7 +20,7 @@ class JwtService
     {
         $payload['iat'] = time();
         $payload['exp'] = time() + $expiry;
-        
+
         return JWT::encode($payload, $this->secretKey, $this->algorithm);
     }
 
@@ -27,6 +28,7 @@ class JwtService
     {
         try {
             $decoded = JWT::decode($token, new Key($this->secretKey, $this->algorithm));
+
             return (array) $decoded;
         } catch (\Exception $e) {
             return null;
@@ -38,24 +40,7 @@ class JwtService
         return [
             'issued_at' => date('Y-m-d H:i:s', $payload['iat']),
             'expires_at' => date('Y-m-d H:i:s', $payload['exp']),
-            'valid_for_seconds' => $payload['exp'] - time()
+            'valid_for_seconds' => $payload['exp'] - time(),
         ];
-    }
-
-    public function invalidateToken(string $token): bool
-    {
-        // Простейшая реализация - добавление в blacklist
-        $this->invalidatedTokens[$token] = time();
-        
-        // Для продакшена используйте Redis:
-        // Redis::setex("jwt:invalid:$token", $this->tokenTtl, 1);
-        
-        return true;
-    }
-
-    public function isTokenInvalid(string $token): bool
-    {
-        return isset($this->invalidatedTokens[$token]);
-        // Для Redis: return Redis::exists("jwt:invalid:$token");
     }
 }

@@ -28,8 +28,8 @@
         "userb1az/deepseek-coder-v2-lite-instruct": {
           "name": "DeepSeec coder V2 LI"
         },
-        "devstral-small-2-24b-instruct-2512": {
-          "name": "DevStral 15"
+        "nvidia/nemotron-3-super": {
+          "name": "NEMOTRON"
         }
 
       }
