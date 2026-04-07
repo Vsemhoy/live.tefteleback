@@ -8,11 +8,9 @@ use App\Models\EvtEvent;
 use App\Models\EvtSection;
 use App\Models\EvtType;
 use Carbon\Carbon;
-
-use Illuminate\Support\Facades\Log;
-
-use Illuminate\Http\Request; // ✅ Правильный импорт
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request; // ✅ Правильный импорт
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Symfony\Component\Uid\Ulid;
 
@@ -21,10 +19,10 @@ class EventorApiController extends Controller
     public function getMyEventsAction(Request $request): JsonResponse
     {
         $user = $request->user();
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'status' => 1,
-                'message' => 'Unauthorized'
+                'message' => 'Unauthorized',
             ], 401);
         }
 
@@ -32,9 +30,9 @@ class EventorApiController extends Controller
 
         // Установим дефолтные даты: начало и конец текущего месяца
         $start = Carbon::now()->startOfMonth()->startOfDay();
-        $end   = Carbon::now()->endOfMonth()->endOfDay();
+        $end = Carbon::now()->endOfMonth()->endOfDay();
 
-        $sections = "ALL";
+        $sections = 'ALL';
 
         // Парсим даты, если переданы
         if (isset($params['start']) && $params['start']) {
@@ -46,11 +44,11 @@ class EventorApiController extends Controller
         }
 
         // Проверяем секции
-        if (isset($params['sections']) && is_array($params['sections']) && !empty($params['sections'])) {
-            if ($params['sections'][0] !== "NULL"){
-                 if ($params['sections'][0] !== 'ALL'){
-                     $sections = $params['sections'];
-                 }
+        if (isset($params['sections']) && is_array($params['sections']) && ! empty($params['sections'])) {
+            if ($params['sections'][0] !== 'NULL') {
+                if ($params['sections'][0] !== 'ALL') {
+                    $sections = $params['sections'];
+                }
             } else {
                 $sections = null;
             }
@@ -69,19 +67,17 @@ class EventorApiController extends Controller
         return response()->json([
             'status' => 0, // ✅ 0 = успех
             'message' => 'OK',
-            'content' => $events // ✅ Laravel автоматически преобразует в JSON
+            'content' => $events, // ✅ Laravel автоматически преобразует в JSON
         ]);
     }
 
-
-
-     public function getMyEventAction(Request $request, $id): JsonResponse
+    public function getMyEventAction(Request $request, $id): JsonResponse
     {
         $user = $request->user();
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'status' => 1,
-                'message' => 'Unauthorized'
+                'message' => 'Unauthorized',
             ], 401);
         }
 
@@ -91,75 +87,65 @@ class EventorApiController extends Controller
         return response()->json([
             'status' => 0, // ✅ 0 = успех
             'message' => 'OK',
-            'content' => $query // ✅ Laravel автоматически преобразует в JSON
+            'content' => $query, // ✅ Laravel автоматически преобразует в JSON
         ]);
     }
-
-
 
     public function getMySections(Request $request): JsonResponse
     {
         $user = $request->user();
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'success' => 0,
-                'message' => 'Unauthorized'
+                'message' => 'Unauthorized',
             ], 401);
         }
 
         $params = $request->all();
 
-
-
         // Строим запрос
         $query = EvtSection::where('user_id', $user->id);
-            
 
         $sections = $query->orderBy('sort_order', 'DESC')->get();
 
         return response()->json([
             'success' => 1, // ✅ 0 = успех
             'message' => 'OK',
-            'content' => $sections // ✅ Laravel автоматически преобразует в JSON
+            'content' => $sections, // ✅ Laravel автоматически преобразует в JSON
         ]);
     }
-
 
     public function getMyCategories(Request $request): JsonResponse
     {
         $user = $request->user();
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'success' => 0,
-                'message' => 'Unauthorized'
+                'message' => 'Unauthorized',
             ], 401);
         }
 
         $params = $request->all();
 
-
-
         // Строим запрос
         $query = EvtCategory::where('user_id', $user->id);
-            
 
         $categories = $query->orderBy('sort_order', 'DESC')->get();
 
         return response()->json([
             'success' => 1, // ✅ 0 = успех
             'message' => 'OK',
-            'content' => $categories // ✅ Laravel автоматически преобразует в JSON
+            'content' => $categories, // ✅ Laravel автоматически преобразует в JSON
         ]);
     }
-
 
     public function getMyTypes(Request $request): JsonResponse
     {
         $user = $request->user();
-        if (!$user) {
+        if (! $user) {
             return response()->json([
                 'success' => 0,
-                'message' => 'Unauthorized'
+                'message' => 'Unauthorized',
             ], 401);
         }
 
@@ -169,15 +155,13 @@ class EventorApiController extends Controller
             ->orderBy('sort_order', 'ASC')
             ->distinct()
             ->get(['id', 'name', 'color', 'bgcolor', 'icon', 'sort_order']);
-            
 
         return response()->json([
             'success' => 1, // ✅ 0 = успех
             'message' => 'OK',
-            'content' => $types // ✅ Laravel автоматически преобразует в JSON
+            'content' => $types, // ✅ Laravel автоматически преобразует в JSON
         ]);
     }
-
 
     // public function saveEventAction(Request $request)
     // {
@@ -257,151 +241,234 @@ class EventorApiController extends Controller
     //     }
     // }
 
-public function saveEventAction(Request $request): JsonResponse
-{
-    $user = $request->user();
+    public function saveEventAction(Request $request): JsonResponse
+    {
+        $user = $request->user();
 
-    if (!$user) {
-        return response()->json([
-            'status' => 0,
-            'message' => 'Unauthorized',
-        ], 401);
-    }
+        if (! $user) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Unauthorized',
+            ], 401);
+        }
 
-    $request->merge([
-        'name' => is_string($request->input('name')) ? trim($request->input('name')) : $request->input('name'),
-        'content' => is_string($request->input('content')) ? trim($request->input('content')) : $request->input('content'),
-    ]);
+        $request->merge([
+            'name' => is_string($request->input('name')) ? trim($request->input('name')) : $request->input('name'),
+            'content' => is_string($request->input('content')) ? trim($request->input('content')) : $request->input('content'),
+        ]);
 
-    $rules = [
-        'id' => 'nullable|string|max:26',
-        'section_id' => 'nullable|exists:evt_sections,id',
-        'name' => 'nullable|string|max:128|required_without:content',
-        'content' => 'nullable|string|required_without:name',
-        'metadata' => 'nullable|string|max:25',
-        'type_id' => 'nullable|exists:evt_types,id',
-        'category_id' => 'nullable|exists:evt_categories,id',
-        'project_id' => 'nullable|exists:projects,id',
-        'location' => 'nullable|string|max:50',
-        'client' => 'nullable|string|max:120',
-        'format' => 'nullable|integer|between:1,3',
-        'status' => 'nullable|integer|between:1,3',
-        'access' => 'nullable|integer|between:0,4',
-        'setdate' => 'nullable|date',
-    ];
-
-    $messages = [
-        'name.required_without' => 'Either title or content is required',
-        'content.required_without' => 'Either title or content is required',
-    ];
-
-    $validator = Validator::make($request->all(), $rules, $messages);
-
-    if ($validator->fails()) {
-        return response()->json([
-            'status' => 0,
-            'message' => $validator->errors()->first(),
-            'errors' => $validator->errors(),
-        ], 422);
-    }
-
-    $validated = $validator->validated();
-    $eventId = $validated['id'] ?? null;
-
-    try {
-        $fillableFields = [
-            'section_id',
-            'name',
-            'content',
-            'metadata',
-            'type_id',
-            'category_id',
-            'project_id',
-            'location',
-            'client',
-            'format',
-            'status',
-            'access',
-            'setdate',
+        $rules = [
+            'id' => 'nullable|string|max:26',
+            'section_id' => 'nullable|exists:evt_sections,id',
+            'name' => 'nullable|string|max:128|required_without:content',
+            'content' => 'nullable|string|required_without:name',
+            'metadata' => 'nullable|string|max:25',
+            'type_id' => 'nullable|exists:evt_types,id',
+            'category_id' => 'nullable|exists:evt_categories,id',
+            'project_id' => 'nullable|exists:projects,id',
+            'location' => 'nullable|string|max:50',
+            'client' => 'nullable|string|max:120',
+            'format' => 'nullable|integer|between:1,3',
+            'status' => 'nullable|integer|between:1,3',
+            'access' => 'nullable|integer|between:0,4',
+            'setdate' => 'nullable|date',
         ];
 
-        if (!$eventId) {
-            // CREATE
-            $data = [
-                'id' => (string) Ulid::generate(),
-                'user_id' => $user->id,
-                'name' => $validated['name'] ?? null,
-                'content' => $validated['content'],
-                'format' => $validated['format'] ?? 1,
-                'status' => $validated['status'] ?? 2,
-                'access' => $validated['access'] ?? 1,
-                'setdate' => $validated['setdate'] ?? now(),
+        $messages = [
+            'name.required_without' => 'Either title or content is required',
+            'content.required_without' => 'Either title or content is required',
+        ];
+
+        $validator = Validator::make($request->all(), $rules, $messages);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 0,
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+        $eventId = $validated['id'] ?? null;
+
+        try {
+            $fillableFields = [
+                'section_id',
+                'name',
+                'content',
+                'metadata',
+                'type_id',
+                'category_id',
+                'project_id',
+                'location',
+                'client',
+                'format',
+                'status',
+                'access',
+                'setdate',
             ];
+
+            if (! $eventId) {
+                // CREATE
+                $data = [
+                    'id' => (string) Ulid::generate(),
+                    'user_id' => $user->id,
+                    'name' => $validated['name'] ?? null,
+                    'content' => $validated['content'],
+                    'format' => $validated['format'] ?? 1,
+                    'status' => $validated['status'] ?? 2,
+                    'access' => $validated['access'] ?? 1,
+                    'setdate' => $validated['setdate'] ?? now(),
+                ];
+
+                foreach ($fillableFields as $field) {
+                    if (array_key_exists($field, $validated)) {
+                        $data[$field] = $validated[$field];
+                    }
+                }
+
+                $item = EvtEvent::create($data);
+
+                return response()->json([
+                    'status' => 1,
+                    'message' => 'Event created successfully',
+                    'content' => $item,
+                    'duration' => round(microtime(true) - LARAVEL_START, 3),
+                ], 201);
+            }
+
+            // UPDATE
+            $event = EvtEvent::find($eventId);
+
+            if (! $event) {
+                return response()->json([
+                    'status' => 0,
+                    'message' => 'Event not found',
+                ], 404);
+            }
+
+            if ($event->user_id !== $user->id) {
+                return response()->json([
+                    'status' => 0,
+                    'message' => 'You are not the owner of this event',
+                ], 403);
+            }
+
+            $updateData = [];
 
             foreach ($fillableFields as $field) {
                 if (array_key_exists($field, $validated)) {
-                    $data[$field] = $validated[$field];
+                    $updateData[$field] = $validated[$field];
                 }
             }
 
-            $item = EvtEvent::create($data);
+            $event->update($updateData);
+            $event->refresh();
 
             return response()->json([
                 'status' => 1,
-                'message' => 'Event created successfully',
-                'content' => $item,
+                'message' => 'Event updated successfully',
+                'content' => $event,
                 'duration' => round(microtime(true) - LARAVEL_START, 3),
-            ], 201);
-        }
+            ], 200);
 
-        // UPDATE
-        $event = EvtEvent::find($eventId);
+        } catch (\Throwable $e) {
+            Log::error('SaveEventAction failed', [
+                'user_id' => $user->id,
+                'event_id' => $eventId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
 
-        if (!$event) {
             return response()->json([
                 'status' => 0,
-                'message' => 'Event not found',
-            ], 404);
-        }
-
-        if ($event->user_id !== $user->id) {
-            return response()->json([
-                'status' => 0,
-                'message' => 'You are not the owner of this event',
-            ], 403);
-        }
-
-        $updateData = [];
-
-        foreach ($fillableFields as $field) {
-            if (array_key_exists($field, $validated)) {
-                $updateData[$field] = $validated[$field];
-            }
-        }
-
-        $event->update($updateData);
-        $event->refresh();
-
-        return response()->json([
-            'status' => 1,
-            'message' => 'Event updated successfully',
-            'content' => $event,
-            'duration' => round(microtime(true) - LARAVEL_START, 3),
-        ], 200);
-
-    } catch (\Throwable $e) {
-        Log::error('SaveEventAction failed', [
-            'user_id' => $user->id,
-            'event_id' => $eventId,
-            'error' => $e->getMessage(),
-            'trace' => $e->getTraceAsString(),
-        ]);
-
-        return response()->json([
-            'status' => 0,
-            'message' => 'Server error',
+                'message' => 'Server error',
         ], 500);
     }
 }
 
+public function search(Request $request): JsonResponse
+{
+    $user = $request->user();
+    if (!$user) {
+        return response()->json([
+            'status' => 0,
+            'message' => 'Unauthorized'
+        ], 401);
+    }
+
+    $params = $request->all();
+
+    $validator = Validator::make($params, [
+        'q' => 'nullable|string|max:255',
+        'types' => 'nullable|array',
+        'types.*' => 'string',
+        'sections' => 'nullable|array',
+        'sections.*' => 'string',
+        'date_from' => 'nullable|date',
+        'date_to' => 'nullable|date',
+        'page' => 'nullable|integer|min:1',
+        'per_page' => 'nullable|integer|min:1|max:100'
+    ]);
+
+    if ($validator->fails()) {
+        return response()->json([
+            'status' => 0,
+            'message' => $validator->errors()->first()
+        ], 422);
+    }
+
+    $query = EvtEvent::where('user_id', $user->id);
+
+    if (isset($params['q']) && $params['q']) {
+        $searchTerm = '%' . $params['q'] . '%';
+        $query->where(function ($q) use ($searchTerm) {
+            $q->where('name', 'LIKE', $searchTerm)
+              ->orWhere('content', 'LIKE', $searchTerm);
+        });
+    }
+
+    if (isset($params['types']) && is_array($params['types']) && !empty($params['types'])) {
+        $query->whereIn('type_id', $params['types']);
+    }
+
+    if (isset($params['sections']) && is_array($params['sections']) && !empty($params['sections'])) {
+        $query->whereIn('section_id', $params['sections']);
+    }
+
+    if (isset($params['date_from']) && $params['date_from']) {
+        $query->whereDate('setdate', '>=', Carbon::parse($params['date_from'])->startOfDay());
+    }
+
+    if (isset($params['date_to']) && $params['date_to']) {
+        $query->whereDate('setdate', '<=', Carbon::parse($params['date_to'])->endOfDay());
+    }
+
+    $page = isset($params['page']) ? (int)$params['page'] : 1;
+    $perPage = isset($params['per_page']) ? (int)$params['per_page'] : 20;
+
+    $total = $query->count();
+    $events = $query->skip(($page - 1) * $perPage)
+                    ->take($perPage)
+                    ->orderBy('setdate', 'DESC')
+                    ->get();
+
+    $paginator = new LengthAwarePaginator(
+        $events,
+        $total,
+        $perPage,
+        $page,
+        ['path' => route('eventor.search', [], false)]
+    );
+
+    return response()->json([
+        'content' => $events->toArray(),
+        'total' => $total,
+        'page' => $page,
+        'pages' => $paginator->lastPage()
+    ]);
+}
+
+}
 }
