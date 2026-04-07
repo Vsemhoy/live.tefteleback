@@ -10,7 +10,6 @@ use App\Models\EvtType;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request; // ✅ Правильный импорт
-use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Symfony\Component\Uid\Ulid;
@@ -385,91 +384,83 @@ class EventorApiController extends Controller
             return response()->json([
                 'status' => 0,
                 'message' => 'Server error',
-        ], 500);
+            ], 500);
+        }
     }
-}
 
-public function search(Request $request): JsonResponse
-{
-    $user = $request->user();
-    if (!$user) {
+    public function search(Request $request): JsonResponse
+    {
+        $user = $request->user();
+        if (! $user) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Unauthorized',
+            ], 401);
+        }
+
+        $params = $request->all();
+
+        $validator = Validator::make($params, [
+            'q' => 'nullable|string|max:255',
+            'types' => 'nullable|array',
+            'types.*' => 'string',
+            'sections' => 'nullable|array',
+            'sections.*' => 'string',
+            'date_from' => 'nullable|date',
+            'date_to' => 'nullable|date',
+            'page' => 'nullable|integer|min:1',
+            'per_page' => 'nullable|integer|min:1|max:100',
+        ]);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 0,
+                'message' => $validator->errors()->first(),
+            ], 422);
+        }
+
+        $query = EvtEvent::where('user_id', $user->id);
+
+        if (isset($params['q']) && $params['q']) {
+            $searchTerm = '%'.$params['q'].'%';
+            $query->where(function ($q) use ($searchTerm) {
+                $q->where('name', 'LIKE', $searchTerm)
+                    ->orWhere('content', 'LIKE', $searchTerm);
+            });
+        }
+
+        if (isset($params['types']) && is_array($params['types']) && ! empty($params['types'])) {
+            $query->whereIn('type_id', $params['types']);
+        }
+
+        if (isset($params['sections']) && is_array($params['sections']) && ! empty($params['sections'])) {
+            $query->whereIn('section_id', $params['sections']);
+        }
+
+        if (isset($params['date_from']) && $params['date_from']) {
+            $query->whereDate('setdate', '>=', Carbon::parse($params['date_from'])->startOfDay());
+        }
+
+        if (isset($params['date_to']) && $params['date_to']) {
+            $query->whereDate('setdate', '<=', Carbon::parse($params['date_to'])->endOfDay());
+        }
+
+        $page = isset($params['page']) ? (int) $params['page'] : 1;
+        $perPage = isset($params['per_page']) ? (int) $params['per_page'] : 20;
+
+        $total = $query->count();
+        $events = $query->skip(($page - 1) * $perPage)
+            ->take($perPage)
+            ->orderBy('setdate', 'DESC')
+            ->get();
+
+        $lastPage = (int) ceil($total / $perPage);
+
         return response()->json([
-            'status' => 0,
-            'message' => 'Unauthorized'
-        ], 401);
+            'content' => $events->toArray(),
+            'total' => $total,
+            'page' => $page,
+            'pages' => $lastPage,
+        ]);
     }
-
-    $params = $request->all();
-
-    $validator = Validator::make($params, [
-        'q' => 'nullable|string|max:255',
-        'types' => 'nullable|array',
-        'types.*' => 'string',
-        'sections' => 'nullable|array',
-        'sections.*' => 'string',
-        'date_from' => 'nullable|date',
-        'date_to' => 'nullable|date',
-        'page' => 'nullable|integer|min:1',
-        'per_page' => 'nullable|integer|min:1|max:100'
-    ]);
-
-    if ($validator->fails()) {
-        return response()->json([
-            'status' => 0,
-            'message' => $validator->errors()->first()
-        ], 422);
-    }
-
-    $query = EvtEvent::where('user_id', $user->id);
-
-    if (isset($params['q']) && $params['q']) {
-        $searchTerm = '%' . $params['q'] . '%';
-        $query->where(function ($q) use ($searchTerm) {
-            $q->where('name', 'LIKE', $searchTerm)
-              ->orWhere('content', 'LIKE', $searchTerm);
-        });
-    }
-
-    if (isset($params['types']) && is_array($params['types']) && !empty($params['types'])) {
-        $query->whereIn('type_id', $params['types']);
-    }
-
-    if (isset($params['sections']) && is_array($params['sections']) && !empty($params['sections'])) {
-        $query->whereIn('section_id', $params['sections']);
-    }
-
-    if (isset($params['date_from']) && $params['date_from']) {
-        $query->whereDate('setdate', '>=', Carbon::parse($params['date_from'])->startOfDay());
-    }
-
-    if (isset($params['date_to']) && $params['date_to']) {
-        $query->whereDate('setdate', '<=', Carbon::parse($params['date_to'])->endOfDay());
-    }
-
-    $page = isset($params['page']) ? (int)$params['page'] : 1;
-    $perPage = isset($params['per_page']) ? (int)$params['per_page'] : 20;
-
-    $total = $query->count();
-    $events = $query->skip(($page - 1) * $perPage)
-                    ->take($perPage)
-                    ->orderBy('setdate', 'DESC')
-                    ->get();
-
-    $paginator = new LengthAwarePaginator(
-        $events,
-        $total,
-        $perPage,
-        $page,
-        ['path' => route('eventor.search', [], false)]
-    );
-
-    return response()->json([
-        'content' => $events->toArray(),
-        'total' => $total,
-        'page' => $page,
-        'pages' => $paginator->lastPage()
-    ]);
 }
-
-}
-
