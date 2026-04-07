@@ -17,67 +17,67 @@ use Symfony\Component\Uid\Ulid;
 class EventorApiController extends Controller
 {
     public function getMyEventsAction(Request $request): JsonResponse
-{
-    $user = $request->user();
+    {
+        $user = $request->user();
 
-    if (!$user) {
-        return response()->json([
-            'status' => 0,
-            'message' => 'Unauthorized'
-        ], 401);
-    }
+        if (! $user) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Unauthorized',
+            ], 401);
+        }
 
-    $params = $request->all();
+        $params = $request->all();
 
-    // Дефолт: текущий месяц
-    $start = Carbon::now()->startOfMonth()->startOfDay();
-    $end   = Carbon::now()->endOfMonth()->endOfDay();
+        // Дефолт: текущий месяц
+        $start = Carbon::now()->startOfMonth()->startOfDay();
+        $end = Carbon::now()->endOfMonth()->endOfDay();
 
-    if (!empty($params['start'])) {
-        $start = Carbon::parse($params['start'])->startOfDay();
-    }
+        if (! empty($params['start'])) {
+            $start = Carbon::parse($params['start'])->startOfDay();
+        }
 
-    if (!empty($params['end'])) {
-        $end = Carbon::parse($params['end'])->endOfDay();
-    }
+        if (! empty($params['end'])) {
+            $end = Carbon::parse($params['end'])->endOfDay();
+        }
 
-    $query = EvtEvent::where('user_id', $user->id)
-        ->whereBetween('setdate', [$start, $end]);
+        $query = EvtEvent::where('user_id', $user->id)
+            ->whereBetween('setdate', [$start, $end]);
 
-    // sections filter
-    if (!empty($params['sections']) && is_array($params['sections'])) {
-        $rawSections = $params['sections'];
+        // sections filter
+        if (! empty($params['sections']) && is_array($params['sections'])) {
+            $rawSections = $params['sections'];
 
-        $hasAll = in_array('ALL', $rawSections, true);
-        $hasNull = in_array('NULL', $rawSections, true);
+            $hasAll = in_array('ALL', $rawSections, true);
+            $hasNull = in_array('NULL', $rawSections, true);
 
-        $sectionIds = array_values(array_filter(
-            $rawSections,
-            fn ($value) => $value !== 'ALL' && $value !== 'NULL' && $value !== null && $value !== ''
-        ));
+            $sectionIds = array_values(array_filter(
+                $rawSections,
+                fn ($value) => $value !== 'ALL' && $value !== 'NULL' && $value !== null && $value !== ''
+            ));
 
-        if (!$hasAll) {
-            if ($hasNull && !empty($sectionIds)) {
-                $query->where(function ($q) use ($sectionIds) {
-                    $q->whereNull('section_id')
-                      ->orWhereIn('section_id', $sectionIds);
-                });
-            } elseif ($hasNull) {
-                $query->whereNull('section_id');
-            } elseif (!empty($sectionIds)) {
-                $query->whereIn('section_id', $sectionIds);
+            if (! $hasAll) {
+                if ($hasNull && ! empty($sectionIds)) {
+                    $query->where(function ($q) use ($sectionIds) {
+                        $q->whereNull('section_id')
+                            ->orWhereIn('section_id', $sectionIds);
+                    });
+                } elseif ($hasNull) {
+                    $query->whereNull('section_id');
+                } elseif (! empty($sectionIds)) {
+                    $query->whereIn('section_id', $sectionIds);
+                }
             }
         }
+
+        $events = $query->orderBy('setdate', 'DESC')->get();
+
+        return response()->json([
+            'status' => 1,
+            'message' => 'OK',
+            'content' => $events,
+        ]);
     }
-
-    $events = $query->orderBy('setdate', 'DESC')->get();
-
-    return response()->json([
-        'status' => 1,
-        'message' => 'OK',
-        'content' => $events
-    ]);
-}
 
     public function getMyEventAction(Request $request, $id): JsonResponse
     {
@@ -385,6 +385,120 @@ class EventorApiController extends Controller
             Log::error('SaveEventAction failed', [
                 'user_id' => $user->id,
                 'event_id' => $eventId,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+
+            return response()->json([
+                'status' => 0,
+                'message' => 'Server error',
+            ], 500);
+        }
+    }
+
+    public function updateEventAction(Request $request, string $id): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Unauthorized',
+            ], 401);
+        }
+
+        $event = EvtEvent::find($id);
+
+        if (! $event) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Event not found',
+            ], 404);
+        }
+
+        if ($event->user_id !== $user->id) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'You are not the owner of this event',
+            ], 403);
+        }
+
+        $request->merge([
+            'name' => is_string($request->input('name')) ? trim($request->input('name')) : $request->input('name'),
+            'content' => is_string($request->input('content')) ? trim($request->input('content')) : $request->input('content'),
+        ]);
+
+        $rules = [
+            'section_id' => 'nullable|exists:evt_sections,id',
+            'name' => 'nullable|string|max:128|required_without:content',
+            'content' => 'nullable|string|required_without:name',
+            'metadata' => 'nullable|string|max:25',
+            'type_id' => 'nullable|exists:evt_types,id',
+            'category_id' => 'nullable|exists:evt_categories,id',
+            'project_id' => 'nullable|exists:projects,id',
+            'location' => 'nullable|string|max:50',
+            'client' => 'nullable|string|max:120',
+            'format' => 'nullable|integer|between:1,3',
+            'status' => 'nullable|integer|between:1,3',
+            'access' => 'nullable|integer|between:0,4',
+            'setdate' => 'nullable|date',
+        ];
+
+        $messages = [
+            'name.required_without' => 'Either title or content is required',
+            'content.required_without' => 'Either title or content is required',
+        ];
+
+        $validator = Validator::make($request->all(), $rules, $messages);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 0,
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+        $fillableFields = [
+            'section_id',
+            'name',
+            'content',
+            'metadata',
+            'type_id',
+            'category_id',
+            'project_id',
+            'location',
+            'client',
+            'format',
+            'status',
+            'access',
+            'setdate',
+        ];
+
+        try {
+            $updateData = [];
+
+            foreach ($fillableFields as $field) {
+                if (array_key_exists($field, $validated)) {
+                    $updateData[$field] = $validated[$field];
+                }
+            }
+
+            $event->update($updateData);
+            $event->refresh();
+
+            return response()->json([
+                'status' => 1,
+                'message' => 'Event updated successfully',
+                'content' => $event,
+                'duration' => round(microtime(true) - LARAVEL_START, 3),
+            ], 200);
+
+        } catch (\Throwable $e) {
+            Log::error('UpdateEventAction failed', [
+                'user_id' => $user->id,
+                'event_id' => $id,
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
