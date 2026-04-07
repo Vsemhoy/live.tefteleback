@@ -89,7 +89,7 @@ return new class extends Migration
 
         Schema::create('evt_events', function (Blueprint $table) {
             $table->char('id', 26)->primary();
-            $table->string('name', 128)->default('new event');
+            $table->string('name', 128)->nullable();
             $table->char('user_id', 26)->index();
             $table->char('type_id', 26)->index()->nullable();
             $table->tinyInteger('format')->index()->default(1); // 1 - md, 2 - text, 3 - code
@@ -101,7 +101,7 @@ return new class extends Migration
             $table->char('project_id', 26)->index()->nullable();
             $table->string('location', 50)->nullable(); // GPS
             $table->string('client', 120)->nullable(); // Who posted client info
-            $table->text('content'); // md text or something else
+            $table->text('content')->nullable(); // md text or something else
 
             $table->tinyInteger('status')->default(1); // 1 - await / 2 - published / 3 - archieved
 
