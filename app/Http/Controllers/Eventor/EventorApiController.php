@@ -17,59 +17,67 @@ use Symfony\Component\Uid\Ulid;
 class EventorApiController extends Controller
 {
     public function getMyEventsAction(Request $request): JsonResponse
-    {
-        $user = $request->user();
-        if (! $user) {
-            return response()->json([
-                'status' => 1,
-                'message' => 'Unauthorized',
-            ], 401);
-        }
+{
+    $user = $request->user();
 
-        $params = $request->all();
+    if (!$user) {
+        return response()->json([
+            'status' => 0,
+            'message' => 'Unauthorized'
+        ], 401);
+    }
 
-        // Установим дефолтные даты: начало и конец текущего месяца
-        $start = Carbon::now()->startOfMonth()->startOfDay();
-        $end = Carbon::now()->endOfMonth()->endOfDay();
+    $params = $request->all();
 
-        $sections = 'ALL';
+    // Дефолт: текущий месяц
+    $start = Carbon::now()->startOfMonth()->startOfDay();
+    $end   = Carbon::now()->endOfMonth()->endOfDay();
 
-        // Парсим даты, если переданы
-        if (isset($params['start']) && $params['start']) {
-            $start = Carbon::parse($params['start'])->startOfDay();
-        }
+    if (!empty($params['start'])) {
+        $start = Carbon::parse($params['start'])->startOfDay();
+    }
 
-        if (isset($params['end']) && $params['end']) {
-            $end = Carbon::parse($params['end'])->endOfDay();
-        }
+    if (!empty($params['end'])) {
+        $end = Carbon::parse($params['end'])->endOfDay();
+    }
 
-        // Проверяем секции
-        if (isset($params['sections']) && is_array($params['sections']) && ! empty($params['sections'])) {
-            if ($params['sections'][0] !== 'NULL') {
-                if ($params['sections'][0] !== 'ALL') {
-                    $sections = $params['sections'];
-                }
-            } else {
-                $sections = null;
+    $query = EvtEvent::where('user_id', $user->id)
+        ->whereBetween('setdate', [$start, $end]);
+
+    // sections filter
+    if (!empty($params['sections']) && is_array($params['sections'])) {
+        $rawSections = $params['sections'];
+
+        $hasAll = in_array('ALL', $rawSections, true);
+        $hasNull = in_array('NULL', $rawSections, true);
+
+        $sectionIds = array_values(array_filter(
+            $rawSections,
+            fn ($value) => $value !== 'ALL' && $value !== 'NULL' && $value !== null && $value !== ''
+        ));
+
+        if (!$hasAll) {
+            if ($hasNull && !empty($sectionIds)) {
+                $query->where(function ($q) use ($sectionIds) {
+                    $q->whereNull('section_id')
+                      ->orWhereIn('section_id', $sectionIds);
+                });
+            } elseif ($hasNull) {
+                $query->whereNull('section_id');
+            } elseif (!empty($sectionIds)) {
+                $query->whereIn('section_id', $sectionIds);
             }
         }
-
-        // Строим запрос
-        $query = EvtEvent::where('user_id', $user->id)
-            ->whereBetween('setdate', [$start, $end]); // ✅ Правильный синтаксис
-
-        if ($sections !== 'ALL') {
-            $query->whereIn('section_id', $sections);
-        }
-
-        $events = $query->orderBy('setdate', 'DESC')->get();
-
-        return response()->json([
-            'status' => 0, // ✅ 0 = успех
-            'message' => 'OK',
-            'content' => $events, // ✅ Laravel автоматически преобразует в JSON
-        ]);
     }
+
+    $events = $query->orderBy('setdate', 'DESC')->get();
+
+    return response()->json([
+        'status' => 1,
+        'message' => 'OK',
+        'content' => $events
+    ]);
+}
 
     public function getMyEventAction(Request $request, $id): JsonResponse
     {
