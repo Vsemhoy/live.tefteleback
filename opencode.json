@@ -19,8 +19,8 @@
         "minimax/minimax-m2.5": {
           "name": "MiniMax 120b"
         },
-        "zai-org/glm-4.7-flash": {
-          "name": "GLM-glash 31"
+        "glm-4.7-flash-claude-opus-4.5-high-reasoning-distill@f16": {
+          "name": "GLM-flash 4.7 Opus"
         },
         "minimax-m2-thrift-55-i1": {
           "name": "MINIMAX-40"
