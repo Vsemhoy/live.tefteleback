@@ -3,39 +3,18 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\RefreshToken;
 use App\Models\User;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
-    // public function login(Request $request, JwtService $jwt)
-    // {
-    //     $credentials = $request->only('email', 'password');
-
-    //     if (!Auth::attempt($credentials)) {
-    //         return response()->json(['error' => 'Unauthorized'], 401);
-    //     }
-
-    //     $user = Auth::user();
-    //     $token = $jwt->generateToken([
-    //         'uid' => $user->id,
-    //         'role' => $user->role // если есть роли
-    //     ]);
-
-    //     return response()->json([
-    //         'access_token' => $token,
-    //         'token_type' => 'bearer',
-    //         'expires_in' => 3600
-    //     ]);
-    // }
-
     public function login(Request $request)
     {
         $credentials = $request->only('email', 'password');
@@ -56,23 +35,23 @@ class AuthController extends Controller
         // Generate refresh token
         $refreshToken = Str::random(60);
 
-        // Store refresh token in Redis with user id and expiry
-        Redis::setex(
-            "refresh_token:{$refreshToken}",
-            config('jwt.refresh_ttl'),
-            $user->id
-        );
+        // Store refresh token in database
+        RefreshToken::create([
+            'token' => $refreshToken,
+            'user_id' => $user->id,
+            'expires_at' => now()->addSeconds(config('jwt.refresh_ttl')),
+        ]);
 
         // Set cookies
-        $cookieMinute = config('jwt.ttl') / 60; // access token TTL in minutes
-        $refreshCookieMinute = config('jwt.refresh_ttl') / 60; // refresh token TTL in minutes
+        $cookieMinute = config('jwt.ttl') / 60;
+        $refreshCookieMinute = config('jwt.refresh_ttl') / 60;
 
         $response = response()->json([
             'user' => [
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
-                'avatar' => null, // We don't have avatar field, set to null
+                'avatar' => null,
             ],
             'message' => 'Login successful',
         ]);
@@ -83,9 +62,9 @@ class AuthController extends Controller
             $cookieMinute,
             '/',
             null,
-            false, // secure: set to true in production with HTTPS
-            true,  // httpOnly
-            false, // raw
+            false,
+            true,
+            false,
             config('session.same_site', 'lax')
         );
 
@@ -95,9 +74,9 @@ class AuthController extends Controller
             $refreshCookieMinute,
             '/',
             null,
-            false, // secure: set to true in production with HTTPS
-            true,  // httpOnly
-            false, // raw
+            false,
+            true,
+            false,
             config('session.same_site', 'lax')
         );
 
@@ -113,35 +92,11 @@ class AuthController extends Controller
 
         try {
             $payload = JWT::decode($token, new Key(config('jwt.secret'), config('jwt.algo')));
-
             return response()->json((array) $payload);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Invalid token'], 401);
         }
     }
-
-    //     public function me()
-    // {
-    //     $user = Auth::guard('api')->user();
-
-    //     if (!$user) {
-    //         return response()->json(['error' => 'Unauthorized'], 401);
-    //     }
-
-    //     // Возвращаем только нужные поля пользователя
-    //     return response()->json([
-    //         'user' => [
-    //             'id' => $user->id,
-    //             'name' => $user->name,
-    //             'email' => $user->email
-    //             // Другие поля по необходимости
-    //         ],
-    //         'token_info' => [
-    //             'iat' => $user->token()->iat,
-    //             'exp' => $user->token()->exp
-    //         ]
-    //     ]);
-    // }
 
     public function me(Request $request)
     {
@@ -151,7 +106,6 @@ class AuthController extends Controller
             return response()->json(['error' => 'Unauthenticated'], 401);
         }
 
-        // Get access token from cookie
         $accessToken = $request->cookie('access_token');
         if ($accessToken) {
             try {
@@ -159,7 +113,6 @@ class AuthController extends Controller
                 $iat = $payload->iat;
                 $exp = $payload->exp;
             } catch (\Exception $e) {
-                // If token is invalid, we still return user info but without token metadata
                 $iat = null;
                 $exp = null;
             }
@@ -181,7 +134,7 @@ class AuthController extends Controller
                 'issued_at' => date('Y-m-d H:i:s', $iat),
                 'expires_at' => date('Y-m-d H:i:s', $exp),
                 'valid_for' => $exp - time(),
-                'expires_timestamp' => $exp * 1000, // JavaScript timestamp
+                'expires_timestamp' => $exp * 1000,
             ];
         }
 
@@ -191,49 +144,43 @@ class AuthController extends Controller
     public function logout(Request $request)
     {
         try {
-            // Get refresh token from cookie
             $refreshToken = $request->cookie('refresh_token');
             if ($refreshToken) {
-                // Remove refresh token from Redis
-                Redis::del("refresh_token:{$refreshToken}");
+                RefreshToken::where('token', $refreshToken)->delete();
             }
 
-            // Clear cookies
-            $cookieMinute = config('jwt.ttl') / 60; // access token TTL in minutes
-            $refreshCookieMinute = config('jwt.refresh_ttl') / 60; // refresh token TTL in minutes
+            $cookieMinute = config('jwt.ttl') / 60;
+            $refreshCookieMinute = config('jwt.refresh_ttl') / 60;
 
             $response = response()->json([
                 'message' => 'Successfully logged out',
                 'should_clear' => true,
             ]);
 
-            // Clear access token cookie
             $response->cookie(
                 'access_token',
                 '',
-                0, // Expire now
+                0,
                 '/',
                 null,
-                false, // secure: set to true in production with HTTPS
-                true,  // httpOnly
-                false, // raw
+                false,
+                true,
+                false,
                 config('session.same_site', 'lax')
             );
 
-            // Clear refresh token cookie
             $response->cookie(
                 'refresh_token',
                 '',
-                0, // Expire now
+                0,
                 '/',
                 null,
-                false, // secure: set to true in production with HTTPS
-                true,  // httpOnly
-                false, // raw
+                false,
+                true,
+                false,
                 config('session.same_site', 'lax')
             );
 
-            // Clear session guard (if used)
             Auth::logout();
 
             return $response;
@@ -246,9 +193,6 @@ class AuthController extends Controller
         }
     }
 
-    /**
-     * Refresh access token using refresh token
-     */
     public function refresh(Request $request)
     {
         $refreshToken = $request->cookie('refresh_token');
@@ -256,19 +200,19 @@ class AuthController extends Controller
             return response()->json(['error' => 'Unauthenticated'], 401);
         }
 
-        // Check refresh token in Redis
-        $key = "refresh_token:{$refreshToken}";
-        $userId = Redis::get($key);
-        if (! $userId) {
+        $tokenRecord = RefreshToken::where('token', $refreshToken)->first();
+        if (! $tokenRecord || $tokenRecord->expires_at->isPast()) {
             return response()->json(['error' => 'Unauthenticated'], 401);
         }
 
-        $user = User::find($userId);
+        $user = User::find($tokenRecord->user_id);
         if (! $user) {
-            Redis::del($key);
-
+            $tokenRecord->delete();
             return response()->json(['error' => 'Unauthenticated'], 401);
         }
+
+        // Delete old refresh token
+        $tokenRecord->delete();
 
         // Generate new access token
         $accessToken = JWT::encode([
@@ -277,13 +221,7 @@ class AuthController extends Controller
             'exp' => time() + config('jwt.ttl'),
         ], config('jwt.secret'), config('jwt.algo'));
 
-        // Optionally rotate refresh token (uncomment if needed)
-        // $newRefreshToken = Str::random(60);
-        // Redis::setex("refresh_token:{$newRefreshToken}", config('jwt.refresh_ttl'), $user->id);
-        // Redis::del($key);
-
-        // Set new access token cookie
-        $cookieMinute = config('jwt.ttl') / 60; // convert seconds to minutes
+        $cookieMinute = config('jwt.ttl') / 60;
         $response = response()->json([
             'message' => 'Token refreshed',
         ]);
@@ -294,24 +232,17 @@ class AuthController extends Controller
             $cookieMinute,
             '/',
             null,
-            false, // secure: set to true in production with HTTPS
-            true,  // httpOnly
-            false, // raw
+            false,
+            true,
+            false,
             config('session.same_site', 'lax')
         );
-
-        // If rotating refresh token, set new refresh token cookie here
-        // $response->cookie('refresh_token', $newRefreshToken, $refreshCookieMinute, '/', null, false, true, false, config('session.same_site', 'lax'));
 
         return $response;
     }
 
-    /**
-     * Регистрация нового пользователя
-     */
     public function signup(Request $request)
     {
-        // Валидация входных данных
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:32|unique:users,name',
             'email' => 'required|email|max:128|unique:users,email',
@@ -348,16 +279,16 @@ class AuthController extends Controller
         // Generate refresh token
         $refreshToken = Str::random(60);
 
-        // Store refresh token in Redis with user id and expiry
-        Redis::setex(
-            "refresh_token:{$refreshToken}",
-            config('jwt.refresh_ttl'),
-            $user->id
-        );
+        // Store refresh token in database
+        RefreshToken::create([
+            'token' => $refreshToken,
+            'user_id' => $user->id,
+            'expires_at' => now()->addSeconds(config('jwt.refresh_ttl')),
+        ]);
 
         // Set cookies
-        $cookieMinute = config('jwt.ttl') / 60; // access token TTL in minutes
-        $refreshCookieMinute = config('jwt.refresh_ttl') / 60; // refresh token TTL in minutes
+        $cookieMinute = config('jwt.ttl') / 60;
+        $refreshCookieMinute = config('jwt.refresh_ttl') / 60;
 
         $response = response()->json([
             'status' => 'success',
@@ -371,9 +302,9 @@ class AuthController extends Controller
             $cookieMinute,
             '/',
             null,
-            false, // secure: set to true in production with HTTPS
-            true,  // httpOnly
-            false, // raw
+            false,
+            true,
+            false,
             config('session.same_site', 'lax')
         );
 
@@ -383,9 +314,9 @@ class AuthController extends Controller
             $refreshCookieMinute,
             '/',
             null,
-            false, // secure: set to true in production with HTTPS
-            true,  // httpOnly
-            false, // raw
+            false,
+            true,
+            false,
             config('session.same_site', 'lax')
         );
 
@@ -406,7 +337,6 @@ class AuthController extends Controller
                 'user_id' => $user->id,
             ]);
 
-            // 1. Проверяем старый пароль
             $oldPassword = $request->input('old_password');
             if (password_verify($oldPassword, $user->password)) {
                 return response()->json([
@@ -415,35 +345,32 @@ class AuthController extends Controller
                 ], 400);
             }
 
-            // 2. Валидация нового пароля
-
-            // 3. Хешируем и сохраняем новый пароль
             $user->password = bcrypt($request->password);
             $user->save();
 
-            // 4. Генерируем новые токены
+            // Generate new access token
             $accessToken = JWT::encode([
                 'sub' => $user->id,
                 'iat' => time(),
                 'exp' => time() + config('jwt.ttl'),
             ], config('jwt.secret'), config('jwt.algo'));
 
+            // Generate new refresh token
             $refreshToken = Str::random(60);
 
-            // Удаляем старый refresh token из Redis (если есть)
+            // Delete old refresh token
             $oldRefreshToken = $request->cookie('refresh_token');
             if ($oldRefreshToken) {
-                Redis::del("refresh_token:{$oldRefreshToken}");
+                RefreshToken::where('token', $oldRefreshToken)->delete();
             }
 
-            // Сохраняем новый refresh token в Redis
-            Redis::setex(
-                "refresh_token:{$refreshToken}",
-                config('jwt.refresh_ttl'),
-                $user->id
-            );
+            // Store new refresh token in database
+            RefreshToken::create([
+                'token' => $refreshToken,
+                'user_id' => $user->id,
+                'expires_at' => now()->addSeconds(config('jwt.refresh_ttl')),
+            ]);
 
-            // Устанавливаем куки
             $cookieMinute = config('jwt.ttl') / 60;
             $refreshCookieMinute = config('jwt.refresh_ttl') / 60;
 
