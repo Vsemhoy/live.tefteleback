@@ -10,6 +10,7 @@ use App\Models\EvtType;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request; // ✅ Правильный импорт
+use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Symfony\Component\Uid\Ulid;
@@ -471,4 +472,4 @@ public function search(Request $request): JsonResponse
 }
 
 }
-}
+
