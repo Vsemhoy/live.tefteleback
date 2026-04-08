@@ -67,4 +67,5 @@ Route::middleware('auth.jwt')->group(function () {
     Route::post('/eventor/saveevent', [EventorApiController::class, 'saveEventAction']);
     Route::post('/eventor/updateevent/{id}', [EventorApiController::class, 'updateEventAction']);
     Route::post('/eventor/search', [EventorApiController::class, 'search']);
+    Route::delete('/eventor/deleteevent/{id}', [EventorApiController::class, 'deleteEvent']);
 });
