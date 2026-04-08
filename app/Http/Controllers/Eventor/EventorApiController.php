@@ -585,26 +585,29 @@ class EventorApiController extends Controller
             'pages' => $lastPage,
         ]);
     }
+
+
+    public function deleteEvent(Request $request, $id): JsonResponse
+        {
+            $user = $request->user();
+            if (! $user) {
+                return response()->json(['status' => 0, 'message' => 'Unauthorized'], 401);
+            }
+
+            $event = EvtEvent::find($id);
+
+            if (! $event) {
+                return response()->json(['status' => 0, 'message' => 'Event not found'], 404);
+            }
+
+            if ($event->user_id !== $user->id) {
+                return response()->json(['status' => 0, 'message' => 'You are not the owner of this event'], 403);
+            }
+
+            $event->delete();
+
+            return response()->json(['status' => 1, 'message' => 'Event deleted successfully']);
+        }
 }
 
-    public function deleteEvent(Request , \): JsonResponse
-    {
-        \ = \->user();
-        if (! \) {
-            return response()->json(['status' => 0, 'message' => 'Unauthorized'], 401);
-        }
 
-        \ = EvtEvent::find(\);
-
-        if (! \) {
-            return response()->json(['status' => 0, 'message' => 'Event not found'], 404);
-        }
-
-        if (\->user_id !== \->id) {
-            return response()->json(['status' => 0, 'message' => 'You are not the owner of this event'], 403);
-        }
-
-        \->delete();
-
-        return response()->json(['status' => 1, 'message' => 'Event deleted successfully']);
-    }
