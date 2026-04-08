@@ -10,6 +10,7 @@ use App\Models\EvtType;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request; // ✅ Правильный импорт
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Validator;
 use Symfony\Component\Uid\Ulid;
@@ -510,6 +511,279 @@ class EventorApiController extends Controller
         }
     }
 
+    public function saveSectionAction(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Unauthorized',
+            ], 401);
+        }
+
+        $rules = [
+            'name' => 'nullable|string|max:32',
+            'literals' => 'nullable|string|max:3',
+            'bgcolor' => 'nullable|regex:/^#([A-Fa-f0-9]{6})$/i',
+            'sort_order' => 'nullable|integer',
+        ];
+
+        $validator = Validator::make($request->all(), $rules);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 0,
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+
+        try {
+            $data = [
+                'id' => (string) Ulid::generate(),
+                'user_id' => $user->id,
+                'name' => $validated['name'] ?? null,
+                'literals' => $validated['literals'] ?? null,
+                'bgcolor' => $validated['bgcolor'] ?? null,
+                'sort_order' => $validated['sort_order'] ?? 0,
+                'is_archived' => false,
+                'is_default' => false,
+            ];
+
+            $section = EvtSection::create($data);
+
+            return response()->json([
+                'status' => 1,
+                'message' => 'Section created successfully',
+                'content' => $section,
+            ], 201);
+
+        } catch (\Throwable $e) {
+            Log::error('SaveSectionAction failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status' => 0,
+                'message' => 'Server error',
+            ], 500);
+        }
+    }
+
+    public function updateSectionAction(Request $request, string $id): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Unauthorized',
+            ], 401);
+        }
+
+        $section = EvtSection::find($id);
+
+        if (! $section) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Section not found',
+            ], 404);
+        }
+
+        if ($section->user_id !== $user->id) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'You are not the owner of this section',
+            ], 403);
+        }
+
+        $rules = [
+            'name' => 'nullable|string|max:32',
+            'literals' => 'nullable|string|max:3',
+            'bgcolor' => 'nullable|regex:/^#([A-Fa-f0-9]{6})$/i',
+            'sort_order' => 'nullable|integer',
+            'is_archived' => 'nullable|boolean',
+        ];
+
+        $validator = Validator::make($request->all(), $rules);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 0,
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+
+        try {
+            $updateData = [];
+
+            if (isset($validated['name'])) {
+                $updateData['name'] = trim($validated['name']);
+            }
+            if (isset($validated['literals'])) {
+                $updateData['literals'] = $validated['literals'];
+            }
+            if (isset($validated['bgcolor'])) {
+                $updateData['bgcolor'] = $validated['bgcolor'];
+            }
+            if (isset($validated['sort_order'])) {
+                $updateData['sort_order'] = $validated['sort_order'];
+            }
+            if (isset($validated['is_archived'])) {
+                $updateData['is_archived'] = $validated['is_archived'];
+            }
+
+            $section->update($updateData);
+            $section->refresh();
+
+            return response()->json([
+                'status' => 1,
+                'message' => 'Section updated successfully',
+                'content' => $section,
+            ], 200);
+
+        } catch (\Throwable $e) {
+            Log::error('UpdateSectionAction failed', [
+                'user_id' => $user->id,
+                'section_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status' => 0,
+                'message' => 'Server error',
+            ], 500);
+        }
+    }
+
+    public function deleteSectionAction(Request $request, string $id): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Unauthorized',
+            ], 401);
+        }
+
+        $section = EvtSection::find($id);
+
+        if (! $section) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Section not found',
+            ], 404);
+        }
+
+        if ($section->user_id !== $user->id) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'You are not the owner of this section',
+            ], 403);
+        }
+
+        if ($section->is_default) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Cannot delete: default section',
+            ], 422);
+        }
+
+        $hasEvents = EvtEvent::where('section_id', $id)->exists();
+
+        if ($hasEvents) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Cannot delete: section has linked events',
+            ], 422);
+        }
+
+        try {
+            $section->delete();
+
+            return response()->json([
+                'status' => 1,
+                'message' => 'Section deleted successfully',
+            ], 200);
+
+        } catch (\Throwable $e) {
+            Log::error('DeleteSectionAction failed', [
+                'user_id' => $user->id,
+                'section_id' => $id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status' => 0,
+                'message' => 'Server error',
+            ], 500);
+        }
+    }
+
+    public function reorderSectionsAction(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Unauthorized',
+            ], 401);
+        }
+
+        $rules = [
+            'sections' => 'required|array|min:1',
+            'sections.*.id' => 'required|string|max:26',
+            'sections.*.sort_order' => 'required|integer|min:0',
+        ];
+
+        $validator = Validator::make($request->all(), $rules);
+
+        if ($validator->fails()) {
+            return response()->json([
+                'status' => 0,
+                'message' => $validator->errors()->first(),
+                'errors' => $validator->errors(),
+            ], 422);
+        }
+
+        $validated = $validator->validated();
+
+        try {
+            DB::transaction(function () use ($user, $validated) {
+                foreach ($validated['sections'] as $sectionData) {
+                    EvtSection::where('id', $sectionData['id'])
+                        ->where('user_id', $user->id)
+                        ->update(['sort_order' => $sectionData['sort_order']]);
+                }
+            });
+
+            return response()->json([
+                'status' => 1,
+                'message' => 'Sections reordered successfully',
+            ], 200);
+
+        } catch (\Throwable $e) {
+            Log::error('ReorderSectionsAction failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+
+            return response()->json([
+                'status' => 0,
+                'message' => 'Server error',
+            ], 500);
+        }
+    }
+
     public function search(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -586,28 +860,25 @@ class EventorApiController extends Controller
         ]);
     }
 
-
     public function deleteEvent(Request $request, $id): JsonResponse
-        {
-            $user = $request->user();
-            if (! $user) {
-                return response()->json(['status' => 0, 'message' => 'Unauthorized'], 401);
-            }
-
-            $event = EvtEvent::find($id);
-
-            if (! $event) {
-                return response()->json(['status' => 0, 'message' => 'Event not found'], 404);
-            }
-
-            if ($event->user_id !== $user->id) {
-                return response()->json(['status' => 0, 'message' => 'You are not the owner of this event'], 403);
-            }
-
-            $event->delete();
-
-            return response()->json(['status' => 1, 'message' => 'Event deleted successfully']);
+    {
+        $user = $request->user();
+        if (! $user) {
+            return response()->json(['status' => 0, 'message' => 'Unauthorized'], 401);
         }
+
+        $event = EvtEvent::find($id);
+
+        if (! $event) {
+            return response()->json(['status' => 0, 'message' => 'Event not found'], 404);
+        }
+
+        if ($event->user_id !== $user->id) {
+            return response()->json(['status' => 0, 'message' => 'You are not the owner of this event'], 403);
+        }
+
+        $event->delete();
+
+        return response()->json(['status' => 1, 'message' => 'Event deleted successfully']);
+    }
 }
-
-

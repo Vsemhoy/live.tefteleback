@@ -65,7 +65,11 @@ Route::middleware('auth.jwt')->group(function () {
     Route::post('/eventor/getmycategories', [EventorApiController::class, 'getMyCategories']);
     Route::post('/eventor/getmytypes', [EventorApiController::class, 'getMyTypes']);
     Route::post('/eventor/saveevent', [EventorApiController::class, 'saveEventAction']);
+    Route::post('/eventor/savesection', [EventorApiController::class, 'saveSectionAction']);
     Route::post('/eventor/updateevent/{id}', [EventorApiController::class, 'updateEventAction']);
+    Route::post('/eventor/updatesection/{id}', [EventorApiController::class, 'updateSectionAction']);
+    Route::delete('/eventor/deletesection/{id}', [EventorApiController::class, 'deleteSectionAction']);
+    Route::post('/eventor/reordersections', [EventorApiController::class, 'reorderSectionsAction']);
     Route::post('/eventor/search', [EventorApiController::class, 'search']);
     Route::delete('/eventor/deleteevent/{id}', [EventorApiController::class, 'deleteEvent']);
 });
