@@ -72,4 +72,8 @@ Route::middleware('auth.jwt')->group(function () {
     Route::post('/eventor/reordersections', [EventorApiController::class, 'reorderSectionsAction']);
     Route::post('/eventor/search', [EventorApiController::class, 'search']);
     Route::delete('/eventor/deleteevent/{id}', [EventorApiController::class, 'deleteEvent']);
+    Route::post('/eventor/getmytags', [EventorApiController::class, 'getMyTagsAction']);
+    Route::post('/eventor/savetag', [EventorApiController::class, 'saveTagAction']);
+    Route::post('/eventor/updatetag/{id}', [EventorApiController::class, 'updateTagAction']);
+    Route::delete('/eventor/deletetag/{id}', [EventorApiController::class, 'deleteTagAction']);
 });

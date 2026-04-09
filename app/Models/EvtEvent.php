@@ -1,17 +1,19 @@
 <?php
+
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
-use Illuminate\Support\Facades\DB;
 use Symfony\Component\Uid\Ulid;
 
 class EvtEvent extends Model
 {
     protected $table = 'evt_events'; // Укажите имя таблицы, если оно не соответствует имени модели
+
     protected $primaryKey = 'id'; // Укажите первичный ключ
+
     public $incrementing = false; // Отключите автоинкремент
+
     protected $keyType = 'string'; // Установите тип ключа как string
 
     use HasFactory;
@@ -46,8 +48,6 @@ class EvtEvent extends Model
 
     ];
 
-
-
     public function user()
     {
         return $this->belongsTo(User::class);
@@ -73,6 +73,12 @@ class EvtEvent extends Model
         return $this->belongsTo(EvtCategory::class, 'category_id');
     }
 
+    public function tags()
+    {
+        return $this->belongsToMany(EvtTag::class, 'evt_event_tags', 'event_id', 'tag_id')
+            ->select(['id', 'name', 'slug', 'color', 'bgcolor']);
+    }
+
     // public function pinAlgorithms()
     // {
     //     return $this->belongsToMany(PinAlgorithm::class, 'evt_pin_algorithm');
@@ -81,7 +87,7 @@ class EvtEvent extends Model
     public function starredByUser()
     {
         return $this->hasOne(EvtStarred::class, 'event_id')
-                    ->where('user_id', auth()->id());
+            ->where('user_id', auth()->id());
     }
 
     public function media()
@@ -93,7 +99,6 @@ class EvtEvent extends Model
     {
         return $this->hasMany(EvtEmbed::class, 'event_id')->orderBy('order');
     }
-
 
     protected static function boot()
     {
@@ -108,8 +113,6 @@ class EvtEvent extends Model
             // Устанавливаем root_id = id по умолчанию
             $model->root_id = $model->{$keyName};
         });
-        
+
     }
-
-
 }

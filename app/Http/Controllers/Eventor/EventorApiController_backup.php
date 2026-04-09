@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 
 namespace App\Http\Controllers\Eventor;
 
@@ -32,7 +32,7 @@ class EventorApiController extends Controller
 
         $params = $request->all();
 
-        // Дефолт: текущий месяц
+        // Ð”ÐµÑ„Ð¾Ð»Ñ‚: Ñ‚ÐµÐºÑƒÑ‰Ð¸Ð¹ Ð¼ÐµÑÑÑ†
         $start = Carbon::now()->startOfMonth()->startOfDay();
         $end = Carbon::now()->endOfMonth()->endOfDay();
 
@@ -97,13 +97,13 @@ class EventorApiController extends Controller
             ], 401);
         }
 
-        // Строим запрос
+        // Ð¡Ñ‚Ñ€Ð¾Ð¸Ð¼ Ð·Ð°Ð¿Ñ€Ð¾Ñ
         $query = EvtEvent::where('user_id', $user->id)->where('id', $id)->first();
 
         return response()->json([
-            'status' => 0, // ✅ 0 = успех
+            'status' => 0, // âœ… 0 = ÑƒÑÐ¿ÐµÑ…
             'message' => 'OK',
-            'content' => $query, // ✅ Laravel автоматически преобразует в JSON
+            'content' => $query, // âœ… Laravel Ð°Ð²Ñ‚Ð¾Ð¼Ð°Ñ‚Ð¸Ñ‡ÐµÑÐºÐ¸ Ð¿Ñ€ÐµÐ¾Ð±Ñ€Ð°Ð·ÑƒÐµÑ‚ Ð² JSON
         ]);
     }
 
@@ -119,15 +119,15 @@ class EventorApiController extends Controller
 
         $params = $request->all();
 
-        // Строим запрос
+        // Ð¡Ñ‚Ñ€Ð¾Ð¸Ð¼ Ð·Ð°Ð¿Ñ€Ð¾Ñ
         $query = EvtSection::where('user_id', $user->id);
 
         $sections = $query->orderBy('sort_order', 'DESC')->get();
 
         return response()->json([
-            'success' => 1, // ✅ 0 = успех
+            'success' => 1, // âœ… 0 = ÑƒÑÐ¿ÐµÑ…
             'message' => 'OK',
-            'content' => $sections, // ✅ Laravel автоматически преобразует в JSON
+            'content' => $sections, // âœ… Laravel Ð°Ð²Ñ‚Ð¾Ð¼Ð°Ñ‚Ð¸Ñ‡ÐµÑÐºÐ¸ Ð¿Ñ€ÐµÐ¾Ð±Ñ€Ð°Ð·ÑƒÐµÑ‚ Ð² JSON
         ]);
     }
 
@@ -143,15 +143,15 @@ class EventorApiController extends Controller
 
         $params = $request->all();
 
-        // Строим запрос
+        // Ð¡Ñ‚Ñ€Ð¾Ð¸Ð¼ Ð·Ð°Ð¿Ñ€Ð¾Ñ
         $query = EvtCategory::where('user_id', $user->id);
 
         $categories = $query->orderBy('sort_order', 'DESC')->get();
 
         return response()->json([
-            'success' => 1, // ✅ 0 = успех
+            'success' => 1, // âœ… 0 = ÑƒÑÐ¿ÐµÑ…
             'message' => 'OK',
-            'content' => $categories, // ✅ Laravel автоматически преобразует в JSON
+            'content' => $categories, // âœ… Laravel Ð°Ð²Ñ‚Ð¾Ð¼Ð°Ñ‚Ð¸Ñ‡ÐµÑÐºÐ¸ Ð¿Ñ€ÐµÐ¾Ð±Ñ€Ð°Ð·ÑƒÐµÑ‚ Ð² JSON
         ]);
     }
 
@@ -165,7 +165,7 @@ class EventorApiController extends Controller
             ], 401);
         }
 
-        // Строим запрос
+        // Ð¡Ñ‚Ñ€Ð¾Ð¸Ð¼ Ð·Ð°Ð¿Ñ€Ð¾Ñ
         $types = EvtType::where('is_default', 1)
             ->orWhere('user_id', $user->id)
             ->orderBy('sort_order', 'ASC')
@@ -173,15 +173,15 @@ class EventorApiController extends Controller
             ->get(['id', 'name', 'color', 'bgcolor', 'icon', 'sort_order']);
 
         return response()->json([
-            'success' => 1, // ✅ 0 = успех
+            'success' => 1, // âœ… 0 = ÑƒÑÐ¿ÐµÑ…
             'message' => 'OK',
-            'content' => $types, // ✅ Laravel автоматически преобразует в JSON
+            'content' => $types, // âœ… Laravel Ð°Ð²Ñ‚Ð¾Ð¼Ð°Ñ‚Ð¸Ñ‡ÐµÑÐºÐ¸ Ð¿Ñ€ÐµÐ¾Ð±Ñ€Ð°Ð·ÑƒÐµÑ‚ Ð² JSON
         ]);
     }
 
     // public function saveEventAction(Request $request)
     // {
-    //     $user = $request->user(); // Лучше через $request->user(), чем Auth::user()
+    //     $user = $request->user(); // Ð›ÑƒÑ‡ÑˆÐµ Ñ‡ÐµÑ€ÐµÐ· $request->user(), Ñ‡ÐµÐ¼ Auth::user()
     //     if (!$user) {
     //         return response()->json(['status' => 0, 'message' => 'Unauthorized'], 401);
     //     }
@@ -212,7 +212,7 @@ class EventorApiController extends Controller
 
     //     if ($validator->fails()) {
     //         return response()->json([
-    //             'status' => 0, // ❌ Ошибка → status: 0
+    //             'status' => 0, // âŒ ÐžÑˆÐ¸Ð±ÐºÐ° â†’ status: 0
     //             'message' => $validator->errors()->first(),
     //             'errors' => $validator->errors()
     //         ], 422);
@@ -232,7 +232,7 @@ class EventorApiController extends Controller
     //             'setdate' =>    $validated['setdate'] ?? now(),
     //         ];
 
-    //         // Добавляем только существующие опциональные поля
+    //         // Ð”Ð¾Ð±Ð°Ð²Ð»ÑÐµÐ¼ Ñ‚Ð¾Ð»ÑŒÐºÐ¾ ÑÑƒÑ‰ÐµÑÑ‚Ð²ÑƒÑŽÑ‰Ð¸Ðµ Ð¾Ð¿Ñ†Ð¸Ð¾Ð½Ð°Ð»ÑŒÐ½Ñ‹Ðµ Ð¿Ð¾Ð»Ñ
     //         $optional = ['type_id', 'category_id', 'project_id', 'location', 'client', 'metadata'];
     //         foreach ($optional as $field) {
     //             if (isset($validated[$field])) {
@@ -243,7 +243,7 @@ class EventorApiController extends Controller
     //         $item = EvtEvent::create($data);
 
     //         return response()->json([
-    //             'status' => 1, // ✅ Успех → status: 1
+    //             'status' => 1, // âœ… Ð£ÑÐ¿ÐµÑ… â†’ status: 1
     //             'message' => 'Event created successfully',
     //             'content' => $item,
     //             'duration' => round(microtime(true) - LARAVEL_START, 3)
@@ -251,7 +251,7 @@ class EventorApiController extends Controller
 
     //     } catch (\Exception $e) {
     //         return response()->json([
-    //             'status' => 0, // ✅ Ошибка → status: 0
+    //             'status' => 0, // âœ… ÐžÑˆÐ¸Ð±ÐºÐ° â†’ status: 0
     //             'message' => 'Server error: ' . $e->getMessage()
     //         ], 500);
     //     }
@@ -289,8 +289,6 @@ class EventorApiController extends Controller
             'is_locked' => 'nullable|boolean',
             'is_pinned' => 'nullable|boolean',
             'is_blurred' => 'nullable|boolean',
-            'tag_ids' => 'nullable|array',
-            'tag_ids.*' => 'string|max:26|exists:evt_tags,id',
             'setdate' => 'nullable|date',
         ];
 
@@ -353,26 +351,6 @@ class EventorApiController extends Controller
 
                 $item = EvtEvent::create($data);
 
-                if (array_key_exists('tag_ids', $validated)) {
-                    $requestedTagIds = array_values(array_unique($validated['tag_ids'] ?? []));
-                    $allowedTagIds = EvtTag::whereIn('id', $requestedTagIds)
-                        ->where(function ($q) use ($user) {
-                            $q->where('user_id', $user->id)
-                                ->orWhere('is_system', true);
-                        })
-                        ->pluck('id')
-                        ->all();
-
-                    if (count($allowedTagIds) !== count($requestedTagIds)) {
-                        return response()->json([
-                            'status' => 0,
-                            'message' => 'One or more tags are invalid or not accessible',
-                        ], 422);
-                    }
-
-                    $item->tags()->sync($allowedTagIds);
-                }
-
                 return response()->json([
                     'status' => 1,
                     'message' => 'Event created successfully',
@@ -414,27 +392,6 @@ class EventorApiController extends Controller
             }
 
             $event->update($updateData);
-
-            if (array_key_exists('tag_ids', $validated)) {
-                $requestedTagIds = array_values(array_unique($validated['tag_ids'] ?? []));
-                $allowedTagIds = EvtTag::whereIn('id', $requestedTagIds)
-                    ->where(function ($q) use ($user) {
-                        $q->where('user_id', $user->id)
-                            ->orWhere('is_system', true);
-                    })
-                    ->pluck('id')
-                    ->all();
-
-                if (count($allowedTagIds) !== count($requestedTagIds)) {
-                    return response()->json([
-                        'status' => 0,
-                        'message' => 'One or more tags are invalid or not accessible',
-                    ], 422);
-                }
-
-                $event->tags()->sync($allowedTagIds);
-            }
-
             $event->refresh();
 
             return response()->json([
@@ -514,8 +471,6 @@ class EventorApiController extends Controller
             'is_locked' => 'nullable|boolean',
             'is_pinned' => 'nullable|boolean',
             'is_blurred' => 'nullable|boolean',
-            'tag_ids' => 'nullable|array',
-            'tag_ids.*' => 'string|max:26|exists:evt_tags,id',
             'setdate' => 'nullable|date',
         ];
 
@@ -563,27 +518,6 @@ class EventorApiController extends Controller
             }
 
             $event->update($updateData);
-
-            if (array_key_exists('tag_ids', $validated)) {
-                $requestedTagIds = array_values(array_unique($validated['tag_ids'] ?? []));
-                $allowedTagIds = EvtTag::whereIn('id', $requestedTagIds)
-                    ->where(function ($q) use ($user) {
-                        $q->where('user_id', $user->id)
-                            ->orWhere('is_system', true);
-                    })
-                    ->pluck('id')
-                    ->all();
-
-                if (count($allowedTagIds) !== count($requestedTagIds)) {
-                    return response()->json([
-                        'status' => 0,
-                        'message' => 'One or more tags are invalid or not accessible',
-                    ], 422);
-                }
-
-                $event->tags()->sync($allowedTagIds);
-            }
-
             $event->refresh();
 
             return response()->json([
@@ -1126,3 +1060,4 @@ class EventorApiController extends Controller
         }
     }
 }
+
