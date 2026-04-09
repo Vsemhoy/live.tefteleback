@@ -42,7 +42,11 @@ class EventorApiController extends Controller
             $end = Carbon::parse($params['end'])->endOfDay();
         }
 
-        $query = EvtEvent::where('user_id', $user->id)
+        $query = EvtEvent::with([
+            'evt_type',
+            'section:id,name,color,bgcolor,icon',
+        ])
+            ->where('user_id', $user->id)
             ->whereBetween('setdate', [$start, $end]);
 
         // sections filter
@@ -280,6 +284,9 @@ class EventorApiController extends Controller
             'format' => 'nullable|integer|between:1,3',
             'status' => 'nullable|integer|between:1,3',
             'access' => 'nullable|integer|between:0,4',
+            'is_locked' => 'nullable|boolean',
+            'is_pinned' => 'nullable|boolean',
+            'is_blurred' => 'nullable|boolean',
             'setdate' => 'nullable|date',
         ];
 
@@ -315,6 +322,9 @@ class EventorApiController extends Controller
                 'format',
                 'status',
                 'access',
+                'is_locked',
+                'is_pinned',
+                'is_blurred',
                 'setdate',
             ];
 
@@ -362,6 +372,13 @@ class EventorApiController extends Controller
                     'status' => 0,
                     'message' => 'You are not the owner of this event',
                 ], 403);
+            }
+
+            if ($event->is_locked) {
+                return response()->json([
+                    'status' => 0,
+                    'message' => 'Event is locked and cannot be updated',
+                ], 423);
             }
 
             $updateData = [];
@@ -424,6 +441,13 @@ class EventorApiController extends Controller
             ], 403);
         }
 
+        if ($event->is_locked) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Event is locked and cannot be updated',
+            ], 423);
+        }
+
         $request->merge([
             'name' => is_string($request->input('name')) ? trim($request->input('name')) : $request->input('name'),
             'content' => is_string($request->input('content')) ? trim($request->input('content')) : $request->input('content'),
@@ -442,6 +466,9 @@ class EventorApiController extends Controller
             'format' => 'nullable|integer|between:1,3',
             'status' => 'nullable|integer|between:1,3',
             'access' => 'nullable|integer|between:0,4',
+            'is_locked' => 'nullable|boolean',
+            'is_pinned' => 'nullable|boolean',
+            'is_blurred' => 'nullable|boolean',
             'setdate' => 'nullable|date',
         ];
 
@@ -474,6 +501,9 @@ class EventorApiController extends Controller
             'format',
             'status',
             'access',
+            'is_locked',
+            'is_pinned',
+            'is_blurred',
             'setdate',
         ];
 

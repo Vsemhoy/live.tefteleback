@@ -36,6 +36,7 @@ class EvtEvent extends Model
         'comment_access',
         'is_locked',
         'is_pinned',
+        'is_blurred',
 
         'root_id',
         'parent_id',
@@ -53,6 +54,11 @@ class EvtEvent extends Model
     }
 
     public function type()
+    {
+        return $this->belongsTo(EvtType::class, 'type_id');
+    }
+
+    public function evt_type()
     {
         return $this->belongsTo(EvtType::class, 'type_id');
     }

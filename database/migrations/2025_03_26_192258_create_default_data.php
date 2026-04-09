@@ -44,7 +44,7 @@ return new class extends Migration
             'color' => "#666",
             'bgcolor' => "#76c38530",
             'sort_order' => 1000000000000,
-            'icon' => "faCalendarDay",
+            'icon' => "calendar-event",
             'is_default'=> true
         ],
         [
@@ -54,7 +54,7 @@ return new class extends Migration
             'color' => "#666",
             'bgcolor' => "#d1b50030",
             'sort_order' => 1000000000000,
-            'icon' => "faBiking",
+            'icon' => "bolt",
             'is_default'=> true
         ],
         [
@@ -64,7 +64,7 @@ return new class extends Migration
             'color' => "#666",
             'bgcolor' => "#9c27b029",
             'sort_order' => 3000000000000,
-            'icon' => "faPenClip",
+            'icon' => "pencil",
             'is_default'=> true
         ],
         [
@@ -74,7 +74,7 @@ return new class extends Migration
             'color' => "#666",
             'bgcolor' => "#ff960036",
             'sort_order' => 4000000000000,
-            'icon' => "faBusinessTime",
+            'icon' => "checklist",
             'is_default'=> true
         ],
         [
@@ -84,7 +84,7 @@ return new class extends Migration
             'color' => "#666",
             'bgcolor' => "#00abff3b",
             'sort_order' => 5000000000000,
-            'icon' => "faBookOpen",
+            'icon' => "book-2",
             'is_default'=> true
         ],
         [
@@ -94,8 +94,18 @@ return new class extends Migration
             'color' => "#666",
             'bgcolor' => "#00d9cd54",
             'sort_order' => 6000000000000,
-            'icon' => "faDriversLicense",
+            'icon' => "info-circle",
             'is_default'=> true
+        ],
+        [
+            'id' => "SYSLWI7GB9DA6DIQKRNOGSTATE",
+            'user_id' => 'SYSTEM00000000000000000000',
+            'name' => 'State',
+            'color' => "#4a90a4",
+            'bgcolor' => "#7eb8d430",
+            'sort_order' => 1000000000004,
+            'icon' => "dashboard",
+            'is_default' => true
         ],
 
     ];

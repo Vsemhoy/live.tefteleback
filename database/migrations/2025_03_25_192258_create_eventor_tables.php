@@ -114,6 +114,7 @@ return new class extends Migration
             $table->tinyInteger('relation_type')->default(0);
             // 0 - none, 1 - reply, 2 - quote, 3 - fork, 4 - reaction
 
+            $table->boolean('is_blurred')->default(false);
             $table->boolean('is_locked')->default(false);
             $table->boolean('is_pinned')->default(false);
             $table->datetime('setdate')->nullable()->useCurrent(); // Date when we place this event on the calendar
