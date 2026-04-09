@@ -283,7 +283,6 @@ class EventorApiController extends Controller
             'client' => 'nullable|string|max:120',
             'format' => 'nullable|integer|between:1,3',
             'status' => 'nullable|integer|between:1,3',
-            'access' => 'nullable|integer|between:0,4',
             'is_locked' => 'nullable|boolean',
             'is_pinned' => 'nullable|boolean',
             'is_blurred' => 'nullable|boolean',
@@ -335,11 +334,11 @@ class EventorApiController extends Controller
                     'user_id' => $user->id,
                     'name' => $validated['name'] ?? null,
                     'content' => $validated['content'],
-                    'format' => $validated['format'] ?? 1,
-                    'status' => $validated['status'] ?? 2,
-                    'access' => $validated['access'] ?? 1,
-                    'setdate' => $validated['setdate'] ?? now(),
-                ];
+                'format' => $validated['format'] ?? 1,
+                'status' => $validated['status'] ?? 2,
+                'access' => 1,
+                'setdate' => $validated['setdate'] ?? now(),
+            ];
 
                 foreach ($fillableFields as $field) {
                     if (array_key_exists($field, $validated)) {
@@ -498,13 +497,12 @@ class EventorApiController extends Controller
             'project_id',
             'location',
             'client',
-            'format',
-            'status',
-            'access',
-            'is_locked',
-            'is_pinned',
-            'is_blurred',
-            'setdate',
+                'format',
+                'status',
+                'is_locked',
+                'is_pinned',
+                'is_blurred',
+                'setdate',
         ];
 
         try {
