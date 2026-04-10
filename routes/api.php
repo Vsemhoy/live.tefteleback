@@ -76,4 +76,28 @@ Route::middleware('auth.jwt')->group(function () {
     Route::post('/eventor/savetag', [EventorApiController::class, 'saveTagAction']);
     Route::post('/eventor/updatetag/{id}', [EventorApiController::class, 'updateTagAction']);
     Route::delete('/eventor/deletetag/{id}', [EventorApiController::class, 'deleteTagAction']);
+
+    // ── Accounts ─────────────────────────────────────────────────
+    Route::get   ('accounts',           [BadgerAccountController::class, 'index']);
+    Route::post  ('accounts',           [BadgerAccountController::class, 'store']);
+    Route::put   ('accounts/{id}',      [BadgerAccountController::class, 'update']);
+    Route::delete('accounts/{id}',      [BadgerAccountController::class, 'destroy']);
+
+    // ── Transactions ──────────────────────────────────────────────
+    Route::get   ('transactions',             [BadgerTransactionController::class, 'index']);
+    Route::post  ('transactions',             [BadgerTransactionController::class, 'store']);
+    Route::get   ('transactions/{id}',        [BadgerTransactionController::class, 'show']);
+    Route::put   ('transactions/{id}',        [BadgerTransactionController::class, 'update']);
+    Route::delete('transactions/{id}',        [BadgerTransactionController::class, 'destroy']);
+    Route::patch ('transactions/{id}/move',   [BadgerTransactionController::class, 'move']);
+
+    // ── Groups ────────────────────────────────────────────────────
+    Route::get   ('groups',             [BadgerGroupController::class, 'index']);
+    Route::post  ('groups',             [BadgerGroupController::class, 'store']);
+    Route::put   ('groups/{id}',        [BadgerGroupController::class, 'update']);
+    Route::patch ('groups/{id}/toggle', [BadgerGroupController::class, 'toggle']);
+    Route::delete('groups/{id}',        [BadgerGroupController::class, 'destroy']);
+
+    // ── Month Totals ──────────────────────────────────────────────
+    Route::get('month-totals', [BadgerMonthTotalsController::class, 'index']);
 });

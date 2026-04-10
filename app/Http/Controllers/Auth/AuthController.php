@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\BudLayer;
 use App\Models\RefreshToken;
 use App\Models\User;
 use Firebase\JWT\JWT;
@@ -92,6 +93,7 @@ class AuthController extends Controller
 
         try {
             $payload = JWT::decode($token, new Key(config('jwt.secret'), config('jwt.algo')));
+
             return response()->json((array) $payload);
         } catch (\Exception $e) {
             return response()->json(['error' => 'Invalid token'], 401);
@@ -208,6 +210,7 @@ class AuthController extends Controller
         $user = User::find($tokenRecord->user_id);
         if (! $user) {
             $tokenRecord->delete();
+
             return response()->json(['error' => 'Unauthenticated'], 401);
         }
 
@@ -268,6 +271,14 @@ class AuthController extends Controller
         $user->password = bcrypt($request->password);
         $user->status = 1;
         $user->save();
+
+        // Create base layer for the user (TЗ 6. Seeder — base layer при регистрации)
+        BudLayer::create([
+            'id' => Str::ulid(),
+            'user_id' => $user->id,
+            'name' => 'Base',
+            'type' => 'base',
+        ]);
 
         // Generate access token
         $accessToken = JWT::encode([
