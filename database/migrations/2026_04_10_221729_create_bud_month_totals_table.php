@@ -28,7 +28,7 @@ return new class extends Migration
             $table->integer('tx_count')->default(0);
 
             $table->tinyInteger('is_dirty')->default(0);
-            $table->timestamp('updated_at')->nullable();
+            $table->timestamps();
 
             $table->unique(['layer_id', 'account_id', 'month_key']);
         });

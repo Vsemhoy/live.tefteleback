@@ -30,7 +30,7 @@ class BadgerTransactionController extends Controller
             $query->whereIn('account_id', $ids);
         }
 
-        return $query->with('tags')->get();
+        return $query->get();
     }
 
     public function store(Request $request)

@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Str;
 
@@ -59,5 +60,10 @@ class BudTransaction extends Model
     public function getKeyType()
     {
         return 'string';
+    }
+
+    public function tags(): BelongsToMany
+    {
+        return $this->belongsToMany(EvtTag::class, 'bud_transaction_tags', 'transaction_id', 'tag_id');
     }
 }

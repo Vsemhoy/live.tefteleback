@@ -9,6 +9,8 @@ class BudMonthTotal extends Model
 {
     protected $table = 'bud_month_totals';
 
+    public $timestamps = ['updated_at'];
+
     protected $fillable = [
         'user_id',
         'layer_id',
@@ -23,7 +25,6 @@ class BudMonthTotal extends Model
         'adjustment_total',
         'tx_count',
         'is_dirty',
-        'updated_at',
     ];
 
     protected $casts = [
@@ -36,7 +37,6 @@ class BudMonthTotal extends Model
         'adjustment_total' => 'integer',
         'tx_count' => 'integer',
         'is_dirty' => 'boolean',
-        'updated_at' => 'datetime',
     ];
 
     protected static function boot()
@@ -46,6 +46,9 @@ class BudMonthTotal extends Model
             if (empty($model->id)) {
                 $model->id = Str::ulid();
             }
+        });
+        static::updating(function ($model) {
+            $model->updated_at = now();
         });
     }
 
