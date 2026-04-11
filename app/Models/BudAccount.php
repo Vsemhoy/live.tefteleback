@@ -13,6 +13,7 @@ class BudAccount extends Model
         'user_id',
         'layer_id',
         'name',
+        'literals',
         'type',
         'currency',
         'opening_balance',

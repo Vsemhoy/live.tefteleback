@@ -14,9 +14,17 @@ class BadgerAccountController extends Controller
     public function index(Request $request)
     {
         $user = $request->user();
-        $layer = BudLayer::where('user_id', $user->id)
-            ->where('type', 'base')
-            ->first();
+
+        // Защита: если юзер не авторизован
+        if (!$user) {
+            return response()->json(['error' => 'Unauthenticated'], 401);
+        }
+
+        // Достаём base layer, если нет — создаём автоматически
+        $layer = BudLayer::firstOrCreate(
+            ['user_id' => $user->id, 'type' => 'base'],
+            ['id' => (string) \Illuminate\Support\Str::ulid(), 'name' => 'Base', 'is_active' => 1]
+        );
 
         return BudAccount::where('user_id', $user->id)
             ->where('layer_id', $layer->id)
@@ -25,7 +33,6 @@ class BadgerAccountController extends Controller
             ->get()
             ->map(function ($account) use ($layer) {
                 $account->balance_today = $this->calcBalanceToday($account, $layer);
-
                 return $account;
             });
     }
