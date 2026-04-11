@@ -4,6 +4,10 @@ use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Eventor\EventorApiController;
 use App\Models\User;
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Badger\BadgerAccountController;
+use App\Http\Controllers\Badger\BadgerGroupController;
+use App\Http\Controllers\Badger\BadgerMonthTotalsController;
+use App\Http\Controllers\Badger\BadgerTransactionController;
 
 Route::post('/auth/login', [AuthController::class, 'login']);
 
@@ -77,27 +81,29 @@ Route::middleware('auth.jwt')->group(function () {
     Route::post('/eventor/updatetag/{id}', [EventorApiController::class, 'updateTagAction']);
     Route::delete('/eventor/deletetag/{id}', [EventorApiController::class, 'deleteTagAction']);
 
-    // ── Accounts ─────────────────────────────────────────────────
-    Route::get   ('accounts',           [BadgerAccountController::class, 'index']);
-    Route::post  ('accounts',           [BadgerAccountController::class, 'store']);
-    Route::put   ('accounts/{id}',      [BadgerAccountController::class, 'update']);
-    Route::delete('accounts/{id}',      [BadgerAccountController::class, 'destroy']);
+    // Route::prefix('badger')->group(function () {
+        // ── Accounts ─────────────────────────────────────────────────
+        Route::get   ('/badger/accounts',           [BadgerAccountController::class, 'index']);
+        Route::post  ('/badger/accounts',           [BadgerAccountController::class, 'store']);
+        Route::put   ('/badger/accounts/{id}',      [BadgerAccountController::class, 'update']);
+        Route::delete('/badger/accounts/{id}',      [BadgerAccountController::class, 'destroy']);
 
-    // ── Transactions ──────────────────────────────────────────────
-    Route::get   ('transactions',             [BadgerTransactionController::class, 'index']);
-    Route::post  ('transactions',             [BadgerTransactionController::class, 'store']);
-    Route::get   ('transactions/{id}',        [BadgerTransactionController::class, 'show']);
-    Route::put   ('transactions/{id}',        [BadgerTransactionController::class, 'update']);
-    Route::delete('transactions/{id}',        [BadgerTransactionController::class, 'destroy']);
-    Route::patch ('transactions/{id}/move',   [BadgerTransactionController::class, 'move']);
+        // ── Transactions ──────────────────────────────────────────────
+        Route::get   ('/badger/transactions',             [BadgerTransactionController::class, 'index']);
+        Route::post  ('/badger/transactions',             [BadgerTransactionController::class, 'store']);
+        Route::get   ('/badger/transactions/{id}',        [BadgerTransactionController::class, 'show']);
+        Route::put   ('/badger/transactions/{id}',        [BadgerTransactionController::class, 'update']);
+        Route::delete('/badger/transactions/{id}',        [BadgerTransactionController::class, 'destroy']);
+        Route::patch ('/badger/transactions/{id}/move',   [BadgerTransactionController::class, 'move']);
 
-    // ── Groups ────────────────────────────────────────────────────
-    Route::get   ('groups',             [BadgerGroupController::class, 'index']);
-    Route::post  ('groups',             [BadgerGroupController::class, 'store']);
-    Route::put   ('groups/{id}',        [BadgerGroupController::class, 'update']);
-    Route::patch ('groups/{id}/toggle', [BadgerGroupController::class, 'toggle']);
-    Route::delete('groups/{id}',        [BadgerGroupController::class, 'destroy']);
+        // ── Groups ────────────────────────────────────────────────────
+        Route::get   ('/badger/groups',             [BadgerGroupController::class, 'index']);
+        Route::post  ('/badger/groups',             [BadgerGroupController::class, 'store']);
+        Route::put   ('/badger/groups/{id}',        [BadgerGroupController::class, 'update']);
+        Route::patch ('/badger/groups/{id}/toggle', [BadgerGroupController::class, 'toggle']);
+        Route::delete('/badger/groups/{id}',        [BadgerGroupController::class, 'destroy']);
 
-    // ── Month Totals ──────────────────────────────────────────────
-    Route::get('month-totals', [BadgerMonthTotalsController::class, 'index']);
+        // ── Month Totals ──────────────────────────────────────────────
+        Route::get('/badger/month-totals', [BadgerMonthTotalsController::class, 'index']);
+    // });
 });
