@@ -30,6 +30,9 @@
         },
         "nvidia/nemotron-3-super": {
           "name": "NEMOTRON"
+        },
+        "qwen3-coder-next-opus-4.6-reasoning-distilled": {
+          "name": "CODER-NEXT-OPUS"
         }
 
       }
