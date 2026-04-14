@@ -16,7 +16,7 @@ return new class extends Migration
             $table->char('user_id', 26)->index();
             $table->char('layer_id', 26)->index();
             $table->string('name', 100);
-            $table->string('literals', 3)->nullable();
+            $table->char('literals', 3)->nullable();
             $table->enum('type', ['cash', 'card', 'credit', 'deposit', 'phantom']);
             $table->char('currency', 3)->default('RUB');
             $table->integer('opening_balance')->default(0); // копейки

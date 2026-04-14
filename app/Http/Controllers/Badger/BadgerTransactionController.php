@@ -22,7 +22,7 @@ class BadgerTransactionController extends Controller
         $data = $request->validate([
             'account_id'        => 'required|string',
             'target_account_id' => 'nullable|string',
-            'flow_kind'         => 'required|in:expense,income,transfer_out,transfer_in,adjustment',
+            'flow_kind'         => 'required|in:expense,income,transfer_out,transfer_in,adjustment,reconciliation',
             'amount'            => 'required|integer|min:1',
             'occurred_at'       => 'required|date',
             'title'             => 'nullable|string|max:255',

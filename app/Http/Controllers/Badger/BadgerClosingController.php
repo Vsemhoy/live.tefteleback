@@ -71,7 +71,12 @@ class BadgerClosingController extends Controller
             $transferOut = $txs->where('flow_kind', 'transfer_out')->sum('amount');
             $adjustment  = $txs->where('flow_kind', 'adjustment')->sum('amount');
 
-            $closing = $opening + $income - $expense + $transferIn - $transferOut + $adjustment;
+            // Добавляем reconciliation — влияет на баланс, но не на income/expense
+$reconciliationPos = $txs->where('flow_kind', 'reconciliation')->where('is_negative', 0)->sum('amount');
+$reconciliationNeg = $txs->where('flow_kind', 'reconciliation')->where('is_negative', 1)->sum('amount');
+
+$closing = $opening + $income - $expense + $transferIn - $transferOut 
+         + $adjustment + $reconciliationPos - $reconciliationNeg;
 
             BudMonthTotal::updateOrCreate(
                 ['layer_id' => $layerId, 'account_id' => $accountId, 'month_key' => $monthKey],
