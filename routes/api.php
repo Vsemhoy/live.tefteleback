@@ -64,6 +64,7 @@ Route::middleware('auth.jwt')->group(function () {
 
 Route::middleware('auth.jwt')->group(function () {
     Route::post('/eventor/getmyevents', [EventorApiController::class, 'getMyEventsAction']);
+    Route::post('/eventor/getpinned ', [EventorApiController::class, 'getMyPinnedAction']);
     Route::post('/eventor/getmyevent/{id}', [EventorApiController::class, 'getMyEventAction']);
     Route::post('/eventor/getmysections', [EventorApiController::class, 'getMySections']);
     Route::post('/eventor/getmycategories', [EventorApiController::class, 'getMyCategories']);
@@ -71,6 +72,7 @@ Route::middleware('auth.jwt')->group(function () {
     Route::post('/eventor/saveevent', [EventorApiController::class, 'saveEventAction']);
     Route::post('/eventor/savesection', [EventorApiController::class, 'saveSectionAction']);
     Route::post('/eventor/updateevent/{id}', [EventorApiController::class, 'updateEventAction']);
+    Route::post('/eventor/togglepinned/{id}', [EventorApiController::class, 'togglePinnedEventAction']);
     Route::post('/eventor/updatesection/{id}', [EventorApiController::class, 'updateSectionAction']);
     Route::delete('/eventor/deletesection/{id}', [EventorApiController::class, 'deleteSectionAction']);
     Route::post('/eventor/reordersections', [EventorApiController::class, 'reorderSectionsAction']);

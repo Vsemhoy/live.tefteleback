@@ -19,6 +19,9 @@ use Symfony\Component\Uid\Ulid;
 
 class EventorApiController extends Controller
 {
+
+ 
+
     public function getMyEventsAction(Request $request): JsonResponse
     {
         $user = $request->user();
@@ -86,6 +89,38 @@ class EventorApiController extends Controller
             'content' => $events,
         ]);
     }
+
+
+    public function getMyPinnedAction(Request $request): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Unauthorized',
+            ], 401);
+        }
+
+
+        $query = EvtEvent::with([
+            'evt_type',
+            'section:id,name,color,bgcolor,icon',
+            'tags',
+        ])
+            ->where('user_id', $user->id)
+            ->where('is_pinned', 1);
+
+        $events = $query->orderBy('setdate', 'DESC')->orderBy('sort_order', 'DESC')->get();
+
+        return response()->json([
+            'status' => 1,
+            'message' => 'OK',
+            'content' => $events,
+        ]);
+    }
+
+
 
     public function getMyEventAction(Request $request, $id): JsonResponse
     {
@@ -1124,5 +1159,35 @@ class EventorApiController extends Controller
 
             return response()->json(['status' => 0, 'message' => 'Server error'], 500);
         }
+    }
+
+
+    public function togglePinnedEventAction(Request $request, string $id): JsonResponse
+    {
+        $user = $request->user();
+
+        if (! $user) {
+            return response()->json(['status' => 0, 'message' => 'Unauthorized'], 401);
+        }
+
+        $event = EvtEvent::find($id);
+
+        if (! $event) {
+            return response()->json(['status' => 0, 'message' => 'Event not found'], 404);
+        }
+
+        // ← вот она, проверка владельца
+        if ($event->user_id !== $user->id) {
+            return response()->json(['status' => 0, 'message' => 'Forbidden'], 403);
+        }
+
+        $event->is_pinned = ! $event->is_pinned;
+        $event->save();
+
+        return response()->json([
+            'status'    => 1,
+            'message'   => $event->is_pinned ? 'Pinned' : 'Unpinned',
+            'is_pinned' => $event->is_pinned,
+        ]);
     }
 }
