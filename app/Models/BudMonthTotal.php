@@ -23,20 +23,22 @@ class BudMonthTotal extends Model
         'transfer_in_total',
         'transfer_out_total',
         'adjustment_total',
+        'interest_total',
         'tx_count',
         'is_dirty',
     ];
 
     protected $casts = [
-        'opening_balance' => 'integer',
-        'closing_balance' => 'integer',
-        'income_total' => 'integer',
-        'expense_total' => 'integer',
-        'transfer_in_total' => 'integer',
+        'opening_balance'    => 'integer',
+        'closing_balance'    => 'integer',
+        'income_total'       => 'integer',
+        'expense_total'      => 'integer',
+        'transfer_in_total'  => 'integer',
         'transfer_out_total' => 'integer',
-        'adjustment_total' => 'integer',
-        'tx_count' => 'integer',
-        'is_dirty' => 'boolean',
+        'adjustment_total'   => 'integer',
+        'interest_total'     => 'integer',
+        'tx_count'           => 'integer',
+        'is_dirty'           => 'boolean',
     ];
 
     protected static function boot()
@@ -52,13 +54,6 @@ class BudMonthTotal extends Model
         });
     }
 
-    public function getIncrementing()
-    {
-        return false;
-    }
-
-    public function getKeyType()
-    {
-        return 'string';
-    }
+    public function getIncrementing() { return false; }
+    public function getKeyType()      { return 'string'; }
 }

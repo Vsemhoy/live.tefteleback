@@ -21,16 +21,20 @@ class BudAccount extends Model
         'color',
         'sort_order',
         'is_archived',
-        'opened_at',        // ← добавить
-        'closed_at',        // ← добавить
-        'interest_rate',    // ← добавить
-        'interest_start',   // ← добавить
+        'opened_at',
+        'closed_at',
+        'interest_rate',
+        'interest_start',
     ];
 
     protected $casts = [
         'opening_balance' => 'integer',
-        'sort_order' => 'integer',
-        'is_archived' => 'boolean',
+        'sort_order'      => 'integer',
+        'is_archived'     => 'boolean',
+        'interest_rate'   => 'integer',
+        'opened_at'       => 'date:Y-m-d',
+        'closed_at'       => 'date:Y-m-d',
+        'interest_start'  => 'date:Y-m-d',
     ];
 
     protected static function boot()
@@ -43,15 +47,8 @@ class BudAccount extends Model
         });
     }
 
-    public function getIncrementing()
-    {
-        return false;
-    }
-
-    public function getKeyType()
-    {
-        return 'string';
-    }
+    public function getIncrementing() { return false; }
+    public function getKeyType()      { return 'string'; }
 
     public function transactions(): HasMany
     {
