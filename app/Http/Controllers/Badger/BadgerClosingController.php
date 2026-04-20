@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Badger;
 
 use App\Http\Controllers\Controller;
-use App\Models\BudMonthTotal;
+use App\Models\BudTransaction;
 use App\Services\BadgerBalanceService;
 use Carbon\Carbon;
 
@@ -13,41 +13,36 @@ class BadgerClosingController extends Controller
         private BadgerBalanceService $balanceService
     ) {}
 
-    // recalcFromMonth — пересчитывает цепочку месяцев от fromMonthKey до текущего
-    public function recalcFromMonth(string $userId, string $layerId, string $accountId, string $fromMonthKey): void
+    // recalcFromMonth — пересчитывает цепочку месяцев от fromMonthKey
+    // до последнего месяца с транзакциями (или текущего — что позже)
+    public function recalcFromMonth(string $userId, string $accountId, string $fromMonthKey): void
     {
-        $months = $this->getMonthsFrom($layerId, $accountId, $fromMonthKey);
+        $months = $this->getMonthsFrom($accountId, $fromMonthKey);
 
         foreach ($months as $monthKey) {
-            $this->balanceService->recalcMonth($userId, $layerId, $accountId, $monthKey);
+            $this->balanceService->recalcMonth($userId, $accountId, $monthKey);
         }
     }
 
-    // getMonthsFrom — возвращает массив month_key от fromMonthKey до текущего
-    // Если в БД есть записи — берём их список (могут быть дыры → fillGaps дополнит)
-    // Если нет — генерируем диапазон
-    private function getMonthsFrom(string $layerId, string $accountId, string $fromMonthKey): array
+    private function getMonthsFrom(string $accountId, string $fromMonthKey): array
     {
+        // Считаем до последнего месяца с транзакциями ИЛИ до текущего — что позже
+        $lastTxMonth = BudTransaction::where('account_id', $accountId)
+            ->whereNull('deleted_at')
+            ->max('month_key');
+
         $currentMonthKey = now()->format('Y-m');
+        $endMonthKey     = max($lastTxMonth ?? $currentMonthKey, $currentMonthKey);
 
-        $months = BudMonthTotal::where('layer_id', $layerId)
-            ->where('account_id', $accountId)
-            ->where('month_key', '>=', $fromMonthKey)
-            ->where('month_key', '<=', $currentMonthKey)
-            ->orderBy('month_key', 'asc')
-            ->pluck('month_key')
-            ->toArray();
-
-        // Всегда генерируем полный диапазон без дыр
         $fullRange = [];
         $cursor    = Carbon::createFromFormat('Y-m', $fromMonthKey)->startOfMonth();
-        $limit     = Carbon::createFromFormat('Y-m', $currentMonthKey)->startOfMonth();
+        $limit     = Carbon::createFromFormat('Y-m', $endMonthKey)->startOfMonth();
+
         while ($cursor->lte($limit)) {
             $fullRange[] = $cursor->format('Y-m');
             $cursor->addMonth();
         }
 
-        // Объединяем — берём полный диапазон (он покрывает и дыры)
         return $fullRange;
     }
 }

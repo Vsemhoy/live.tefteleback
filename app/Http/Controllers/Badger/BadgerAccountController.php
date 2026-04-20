@@ -36,7 +36,7 @@ class BadgerAccountController extends Controller
             ->orderBy('sort_order')
             ->get()
             ->map(function ($account) use ($layer) {
-                $account->balance_today    = $this->balanceService->calcBalanceToday($account, $layer->id);
+                $account->balance_today    = $this->balanceService->calcBalanceToday($account);
                 $account->has_transactions = $account->transactions_count > 0;
                 return $account;
             });

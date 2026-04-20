@@ -85,13 +85,12 @@ class BadgerBalanceService
     }
 
     // ─── Пересчёт одного месяца ──────────────────────────────────────
-    public function recalcMonth(string $userId, string $layerId, string $accountId, string $monthKey): void
+    public function recalcMonth(string $userId, string $accountId, string $monthKey): void
     {
         $account = BudAccount::find($accountId);
 
         $prev      = Carbon::createFromFormat('Y-m', $monthKey)->subMonth()->format('Y-m');
         $prevTotal = BudMonthTotal::where([
-            'layer_id'   => $layerId,
             'account_id' => $accountId,
             'month_key'  => $prev,
         ])->first();
@@ -99,7 +98,6 @@ class BadgerBalanceService
         $opening = $prevTotal?->closing_balance ?? 0;
 
         $txs = BudTransaction::where('account_id', $accountId)
-            ->where('layer_id', $layerId)
             ->where('month_key', $monthKey)
             ->where('is_disabled', 0)
             ->whereNull('deleted_at')
@@ -126,7 +124,7 @@ class BadgerBalanceService
             + $interestTotal; // отрицательное — долг вырос
 
         BudMonthTotal::updateOrCreate(
-            ['layer_id' => $layerId, 'account_id' => $accountId, 'month_key' => $monthKey],
+            ['account_id' => $accountId, 'month_key' => $monthKey],
             [
                 'user_id'            => $userId,
                 'opening_balance'    => $opening,
@@ -145,10 +143,10 @@ class BadgerBalanceService
     }
 
     // ─── markDirty ────────────────────────────────────────────────────
-    public function markDirty(string $userId, string $layerId, string $accountId, string $monthKey): void
+    public function markDirty(string $userId, string $accountId, string $monthKey): void
     {
         BudMonthTotal::updateOrCreate(
-            ['layer_id' => $layerId, 'account_id' => $accountId, 'month_key' => $monthKey],
+            ['account_id' => $accountId, 'month_key' => $monthKey],
             ['user_id' => $userId, 'is_dirty' => 1, 'updated_at' => now()]
         );
     }
@@ -157,7 +155,7 @@ class BadgerBalanceService
     // Используется в BadgerAccountController для balance_today в сайдбаре.
     // Opening = closing предыдущего месяца (уже включает проценты).
     // Затем накатываем транзакции текущего месяца + проценты за каждый день.
-    public function calcBalanceToday(BudAccount $account, string $layerId): int
+    public function calcBalanceToday(BudAccount $account): int
     {
         $today    = now()->startOfDay();
         $monthKey = $today->format('Y-m');
@@ -165,7 +163,6 @@ class BadgerBalanceService
 
         $prevTotal = BudMonthTotal::where([
             'account_id' => $account->id,
-            'layer_id'   => $layerId,
             'month_key'  => $prevKey,
         ])->first();
 
@@ -173,7 +170,6 @@ class BadgerBalanceService
 
         // Транзакции с начала месяца по сегодня включительно
         $txs = BudTransaction::where('account_id', $account->id)
-            ->where('layer_id', $layerId)
             ->where('is_disabled', 0)
             ->whereNull('deleted_at')
             ->where('month_key', $monthKey)
