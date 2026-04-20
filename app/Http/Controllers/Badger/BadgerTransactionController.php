@@ -151,6 +151,25 @@ class BadgerTransactionController extends Controller
         return response()->json(['status' => 1, 'content' => $tx]);
     }
 
+
+   public function toggleDisabled(Request $request, string $id)
+    {
+        $user  = $request->user();
+        $tx    = BudTransaction::where('user_id', $user->id)->findOrFail($id);
+
+        $tx->is_disabled = $request->has('is_disabled')
+            ? $request->boolean('is_disabled')
+            : !$tx->is_disabled;
+        $tx->save();
+
+        $this->closing->recalcFromMonth($user->id, $tx->layer_id, $tx->account_id, $tx->month_key);
+
+        return response()->json([
+            'status'  => 1,
+            'content' => $tx->refresh(),
+        ]);
+    }
+
     // index и show без изменений
     public function index(Request $request)
     {

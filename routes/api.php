@@ -89,6 +89,7 @@ Route::middleware('auth.jwt')->group(function () {
         Route::post  ('/badger/accounts',           [BadgerAccountController::class, 'store']);
         Route::put   ('/badger/accounts/{id}',      [BadgerAccountController::class, 'update']);
         Route::delete('/badger/accounts/{id}',      [BadgerAccountController::class, 'destroy']);
+        
 
         // ── Transactions ──────────────────────────────────────────────
         Route::get   ('/badger/transactions',             [BadgerTransactionController::class, 'index']);
@@ -97,6 +98,11 @@ Route::middleware('auth.jwt')->group(function () {
         Route::put   ('/badger/transactions/{id}',        [BadgerTransactionController::class, 'update']);
         Route::delete('/badger/transactions/{id}',        [BadgerTransactionController::class, 'destroy']);
         Route::patch ('/badger/transactions/{id}/move',   [BadgerTransactionController::class, 'move']);
+
+
+        Route::patch ('/badger/transactions/{id}/toggledisabled',  [BadgerTransactionController::class, 'toggleDisabled']);
+
+        
 
         // ── Groups ────────────────────────────────────────────────────
         Route::get   ('/badger/groups',             [BadgerGroupController::class, 'index']);
