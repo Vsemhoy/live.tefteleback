@@ -3,11 +3,13 @@
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Eventor\EventorApiController;
 use App\Models\User;
+use App\Models\BudCategory;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Badger\BadgerAccountController;
 use App\Http\Controllers\Badger\BadgerGroupController;
 use App\Http\Controllers\Badger\BadgerMonthTotalsController;
 use App\Http\Controllers\Badger\BadgerTransactionController;
+use App\Http\Controllers\Badger\BadgerCategoryController;
 
 Route::post('/auth/login', [AuthController::class, 'login']);
 
@@ -103,6 +105,14 @@ Route::middleware('auth.jwt')->group(function () {
         Route::patch ('/badger/transactions/{id}/toggledisabled',  [BadgerTransactionController::class, 'toggleDisabled']);
 
         
+        // ── Categories ────────────────────────────────────────────────
+        Route::post('/badger/categories/reorder',  [BadgerCategoryController::class, 'reorder']);
+        // Route::apiResource('categories',            "BadgerCategoryController::class");
+        Route::get('/badger/categories', [BadgerCategoryController::class, 'index']);
+        Route::post('/badger/categories', [BadgerCategoryController::class, 'store']);
+        Route::patch('/badger/categories/{id}', [BadgerCategoryController::class, 'update']);
+        Route::delete('/badger/categories/{id}', [BadgerCategoryController::class, 'destroy']);
+
 
         // ── Groups ────────────────────────────────────────────────────
         Route::get   ('/badger/groups',             [BadgerGroupController::class, 'index']);
