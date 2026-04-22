@@ -56,7 +56,10 @@ class BadgerTransactionController extends Controller
             'note'              => 'nullable|string',
             'status'            => 'nullable|in:cleared,pending',
             'group_id'          => 'nullable|string',
+            'category_id'       => 'nullable|string|size:26',
         ]);
+
+        \Log::info('store input', ['category_id' => $data['category_id'] ?? 'missing']);
 
         $user     = $request->user();
         $layer    = BudLayer::firstOrCreate(
@@ -66,12 +69,13 @@ class BadgerTransactionController extends Controller
         $monthKey = Carbon::parse($data['occurred_at'])->format('Y-m');
 
         DB::transaction(function () use ($data, $user, $layer, $monthKey) {
-            $tx = BudTransaction::create([
-                ...$data,
+            $tx = BudTransaction::create(array_merge($data, [
                 'user_id'   => $user->id,
                 'layer_id'  => $layer->id,
                 'month_key' => $monthKey,
-            ]);
+            ]));
+
+            \Log::info('created transaction', ['id' => $tx->id, 'category_id' => $tx->category_id]);
 
             if ($data['flow_kind'] === 'transfer_out' && ($data['target_account_id'] ?? null)) {
                 BudTransaction::create([
@@ -110,7 +114,10 @@ class BadgerTransactionController extends Controller
             'status'      => 'nullable|in:cleared,pending',
             'group_id'    => 'nullable|string',
             'is_disabled' => 'nullable|boolean',
+            'category_id' => 'nullable|string|size:26',
         ]);
+
+        \Log::info('update called', ['id' => $id, 'category_id' => $data['category_id'] ?? 'missing']);
 
         $user        = $request->user();
         $tx          = BudTransaction::where('user_id', $user->id)->where('id', $id)->firstOrFail();
@@ -119,6 +126,7 @@ class BadgerTransactionController extends Controller
         $paired      = $this->findPaired($tx);
 
         $tx->update($data);
+        \Log::info('updated transaction', ['id' => $tx->id, 'category_id' => $tx->fresh()->category_id]);
         $newMonthKey = $tx->fresh()->month_key;
 
         // Если изменилась сумма или дата — синхронизируем парную транзакцию

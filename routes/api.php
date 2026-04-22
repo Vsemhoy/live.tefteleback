@@ -106,11 +106,11 @@ Route::middleware('auth.jwt')->group(function () {
 
         
         // ── Categories ────────────────────────────────────────────────
-        Route::post('/badger/categories/reorder',  [BadgerCategoryController::class, 'reorder']);
-        Route::get   ('/badger/categories',           [BadgerCategoryController::class, 'index']);
-        Route::post  ('/badger/categories',          [BadgerCategoryController::class, 'store']);
-        Route::put   ('/badger/categories/{id}',      [BadgerCategoryController::class, 'update']);
-        Route::delete('/badger/categories/{id}',      [BadgerCategoryController::class, 'destroy']);
+        Route::post('/badger/categories/reorder',   [BadgerCategoryController::class, 'reorder']);
+        Route::get   ('/badger/categories',         [BadgerCategoryController::class, 'index']);
+        Route::post  ('/badger/categories',         [BadgerCategoryController::class, 'store']);
+        Route::put   ('/badger/categories/{id}',    [BadgerCategoryController::class, 'update']);
+        Route::delete('/badger/categories/{id}',    [BadgerCategoryController::class, 'destroy']);
 
 
         // ── Groups ────────────────────────────────────────────────────

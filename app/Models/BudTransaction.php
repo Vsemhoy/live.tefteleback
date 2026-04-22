@@ -20,6 +20,7 @@ class BudTransaction extends Model
         'account_id',
         'target_account_id',
         'group_id',
+        'category_id',
         'original_transaction_id',
         'flow_kind',
         'amount',
