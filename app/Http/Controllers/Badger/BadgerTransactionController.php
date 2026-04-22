@@ -218,7 +218,7 @@ class BadgerTransactionController extends Controller
             $query->whereIn('account_id', explode(',', $request->get('account_id')));
         }
 
-        return response()->json(['status' => 1, 'content' => $query->get()]);
+        return response()->json(['status' => 1, 'content' => $query->with('category')->get()]);
     }
 
     public function show(Request $request, string $id)
@@ -226,7 +226,7 @@ class BadgerTransactionController extends Controller
         return response()->json([
             'status'  => 1,
             'content' => BudTransaction::where('user_id', $request->user()->id)
-                ->where('id', $id)->firstOrFail(),
+                ->where('id', $id)->with(['category'])->firstOrFail(),
         ]);
     }
 

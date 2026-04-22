@@ -31,7 +31,7 @@ class BadgerCategoryController extends Controller
             return response()->json(['message' => 'Max depth is 5 levels'], 422);
         }
 
-        $id = (string) \Ulid\Ulid::generate();
+        $id = (string) \Str::ulid();
 
         $path = $id;
         if (!empty($data['parent_id'])) {
