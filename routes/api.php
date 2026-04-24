@@ -2,6 +2,10 @@
 
 use App\Http\Controllers\Auth\AuthController;
 use App\Http\Controllers\Eventor\EventorApiController;
+use App\Http\Controllers\Staffer\StufferLocationController;
+use App\Http\Controllers\Staffer\StufferRegisterController;
+use App\Http\Controllers\Staffer\StufferThingController;
+use App\Http\Controllers\Staffer\StufferExpenseController;
 use App\Models\User;
 use App\Models\BudCategory;
 use Illuminate\Support\Facades\Route;
@@ -123,4 +127,36 @@ Route::middleware('auth.jwt')->group(function () {
         // ── Month Totals ──────────────────────────────────────────────
         Route::get('/badger/month-totals', [BadgerMonthTotalsController::class, 'index']);
     // });
+});
+
+Route::prefix('stuffer')->middleware('auth.jwt')->group(function () {
+
+    // ── Локации ───────────────────────────────────────────────────
+    Route::get   ('locations',          [StufferLocationController::class, 'index']);
+    Route::post  ('locations',          [StufferLocationController::class, 'store']);
+    Route::post  ('locations/reorder',  [StufferLocationController::class, 'reorder']);
+    Route::put   ('locations/{id}',     [StufferLocationController::class, 'update']);
+    Route::delete('locations/{id}',     [StufferLocationController::class, 'destroy']);
+
+    // ── Вещи ──────────────────────────────────────────────────────
+    Route::get   ('things',             [StufferThingController::class, 'index']);
+    Route::post  ('things',             [StufferThingController::class, 'store']);
+    Route::get   ('things/{id}',        [StufferThingController::class, 'show']);
+    Route::put   ('things/{id}',        [StufferThingController::class, 'update']);
+    Route::delete('things/{id}',        [StufferThingController::class, 'destroy']);
+    Route::post  ('things/{id}/open',   [StufferThingController::class, 'open']);
+
+    // ── Регистр событий ───────────────────────────────────────────
+    Route::get   ('register',           [StufferRegisterController::class, 'index']);
+    Route::post  ('register',           [StufferRegisterController::class, 'store']);
+    Route::delete('register/{id}',      [StufferRegisterController::class, 'destroy']);
+
+    // ── Расходы ───────────────────────────────────────────────────
+    Route::get   ('expenses',           [StufferExpenseController::class, 'index']);
+    Route::post  ('expenses',           [StufferExpenseController::class, 'store']);
+    Route::delete('expenses/{id}',      [StufferExpenseController::class, 'destroy']);
+
+    // ── Категории — используем общий Badger контроллер ────────────
+    // GET /badger/categories уже существует и возвращает bud_categories
+    // Stuffer просто читает те же данные — отдельного роута не нужно
 });
