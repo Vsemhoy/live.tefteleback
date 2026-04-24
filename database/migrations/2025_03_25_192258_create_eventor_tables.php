@@ -248,13 +248,13 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('evt_types');
-        Schema::dropIfExists('evt_sections');
-        Schema::dropIfExists('evt_categories');
-        Schema::dropIfExists('evt_events');
+        Schema::dropIfExists('evt_starred');
         Schema::dropIfExists('evt_media');
         Schema::dropIfExists('evt_embeds');
-        Schema::dropIfExists('evt_starred');
+        Schema::dropIfExists('evt_events');
+        Schema::dropIfExists('evt_categories');
+        Schema::dropIfExists('evt_sections');
+        Schema::dropIfExists('evt_types');
         // Schema::dropIfExists('evt_pin_algorithms');
     }
 };

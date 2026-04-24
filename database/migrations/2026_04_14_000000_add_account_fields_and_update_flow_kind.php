@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::table('bud_accounts', function (Blueprint $table) {
             $table->date('opened_at')->nullable()->after('sort_order');
             $table->date('closed_at')->nullable()->after('opened_at');
-            $table->int('interest_rate')->nullable()->after('closed_at');
+            $table->integer('interest_rate')->nullable()->after('closed_at');
             $table->date('interest_start')->nullable()->after('interest_rate');
         });
 
