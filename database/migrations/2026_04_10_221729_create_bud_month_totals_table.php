@@ -12,11 +12,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('bud_month_totals', function (Blueprint $table) {
-            $table->char('id', 26)->primary();
-            $table->char('user_id', 26)->index();
-            $table->char('layer_id', 26);
-            $table->char('account_id', 26);
-            $table->char('month_key', 7); // '2026-04'
+            $table->ulid('id')->primary();
+            $table->ulid('user_id')->index();
+            $table->ulid('layer_id');
+            $table->ulid('account_id');
+            $table->char('month_key', 7);
 
             $table->integer('opening_balance')->default(0);
             $table->integer('closing_balance')->default(0);

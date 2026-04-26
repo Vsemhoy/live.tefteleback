@@ -35,10 +35,10 @@ class StufferRegisterController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'thing_id' => 'required|string|size:26',
+            'thing_id' => 'required|string|max:26',
             'event_type' => 'required|string',
-            'from_location_id' => 'nullable|string|size:26',
-            'to_location_id' => 'nullable|string|size:26',
+            'from_location_id' => 'nullable|string|max:26',
+            'to_location_id' => 'nullable|string|max:26',
             'contact' => 'nullable|string|max:200',
             'return_expected' => 'nullable|date',
             'amount' => 'nullable|integer',

@@ -9,9 +9,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('stf_register', function (Blueprint $table) {
-            $table->char('id', 26)->primary();
-            $table->char('user_id', 26)->index();
-            $table->char('thing_id', 26)->index();
+            $table->ulid('id')->primary();
+            $table->ulid('user_id')->index();
+            $table->ulid('thing_id')->index();
 
             // ── Тип события ───────────────────────────────────────────
             $table->enum('event_type', [
@@ -32,8 +32,8 @@ return new class extends Migration
 
             // ── Перемещение ───────────────────────────────────────────
             // Nullable: bought не имеет from, disposed не имеет to
-            $table->char('from_location_id', 26)->nullable();
-            $table->char('to_location_id', 26)->nullable();
+            $table->ulid('from_location_id')->nullable();
+            $table->ulid('to_location_id')->nullable();
 
             // ── Доп. поля для lent ────────────────────────────────────
             $table->string('contact', 200)->nullable();  // кому одолжили

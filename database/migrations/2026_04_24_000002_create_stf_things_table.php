@@ -9,8 +9,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('stf_things', function (Blueprint $table) {
-            $table->char('id', 26)->primary();
-            $table->char('user_id', 26)->index();
+            $table->ulid('id')->primary();
+            $table->ulid('user_id')->index();
 
             // ── Тип сущности ──────────────────────────────────────────
             $table->enum('entity_type', ['asset', 'item'])->default('item');
@@ -22,13 +22,13 @@ return new class extends Migration
             $table->text('url')->nullable();
 
             // ── Иерархия (Asset вложен в Asset, Item относится к Asset) ─
-            $table->char('parent_id', 26)->nullable();
+            $table->ulid('parent_id')->nullable();
 
             // ── Категория (общая таблица bud_categories) ─────────────
-            $table->char('category_id', 26)->nullable()->index();
+            $table->ulid('category_id')->nullable()->index();
 
             // ── Текущее состояние (денормализация для скорости) ───────
-            $table->char('current_location_id', 26)->nullable()->index();
+            $table->ulid('current_location_id')->nullable()->index();
             $table->enum('current_status', [
                 'active',     // в использовании
                 'stored',     // на хранении

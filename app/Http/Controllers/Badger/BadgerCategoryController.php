@@ -22,7 +22,7 @@ class BadgerCategoryController extends Controller
     {
         $data = $request->validate([
             'name'      => 'required|string|max:100',
-            'parent_id' => 'nullable|string|size:26',
+            'parent_id' => 'nullable|string|max:26',
             'depth'     => 'integer|min:0|max:4',
             'sort_order'=> 'integer',
         ]);

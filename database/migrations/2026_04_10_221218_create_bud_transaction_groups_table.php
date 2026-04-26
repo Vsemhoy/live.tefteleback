@@ -12,8 +12,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('bud_transaction_groups', function (Blueprint $table) {
-            $table->char('id', 26)->primary();
-            $table->char('user_id', 26)->index();
+            $table->ulid('id')->primary();
+            $table->ulid('user_id')->index();
             $table->string('name', 100);
             $table->tinyInteger('is_disabled')->default(0);
             $table->string('color', 20)->nullable();

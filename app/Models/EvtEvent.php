@@ -90,6 +90,16 @@ class EvtEvent extends Model
             ->where('user_id', auth()->id());
     }
 
+    public function parent()
+    {
+        return $this->belongsTo(EvtEvent::class, 'parent_id');
+    }
+
+    public function children()
+    {
+        return $this->hasMany(EvtEvent::class, 'parent_id');
+    }
+
     public function media()
     {
         return $this->hasMany(EvtMedia::class, 'event_id')->orderBy('sort_order');

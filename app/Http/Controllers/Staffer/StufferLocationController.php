@@ -24,7 +24,7 @@ class StufferLocationController extends Controller
     {
         $data = $request->validate([
             'name' => 'required|string|max:100',
-            'parent_id' => 'nullable|string|size:26',
+            'parent_id' => 'nullable|string|max:26',
         ]);
 
         $loc = StfLocation::create([
@@ -44,7 +44,7 @@ class StufferLocationController extends Controller
         $loc = StfLocation::where('user_id', Auth::id())->findOrFail($id);
         $data = $request->validate([
             'name' => 'sometimes|string|max:100',
-            'parent_id' => 'nullable|string|size:26',
+            'parent_id' => 'nullable|string|max:26',
             'sort_order' => 'nullable|integer',
             'is_archived' => 'nullable|boolean',
         ]);

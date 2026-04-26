@@ -114,7 +114,7 @@ class BadgerTransactionController extends Controller
             'status'      => 'nullable|in:cleared,pending',
             'group_id'    => 'nullable|string',
             'is_disabled' => 'nullable|boolean',
-            'category_id' => 'nullable|string|size:26',
+            'category_id' => 'nullable|string|max:26',
         ]);
 
         \Log::info('update called', ['id' => $id, 'category_id' => $data['category_id'] ?? 'missing']);

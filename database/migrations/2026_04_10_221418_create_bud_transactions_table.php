@@ -12,20 +12,20 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('bud_transactions', function (Blueprint $table) {
-            $table->char('id', 26)->primary();
-            $table->char('user_id', 26)->index();
-            $table->char('layer_id', 26)->index();
-            $table->char('account_id', 26)->index();
-            $table->char('target_account_id', 26)->nullable();
-            $table->char('group_id', 26)->nullable()->index();
-            $table->char('original_transaction_id', 26)->nullable();
+            $table->ulid('id')->primary();
+            $table->ulid('user_id')->index();
+            $table->ulid('layer_id')->index();
+            $table->ulid('account_id')->index();
+            $table->ulid('target_account_id')->nullable();
+            $table->ulid('group_id')->nullable()->index();
+            $table->ulid('original_transaction_id')->nullable();
 
             $table->enum('flow_kind', [
                 'expense', 'income', 'transfer_out', 'transfer_in', 'adjustment',
             ]);
-            $table->integer('amount'); // копейки, всегда > 0
+            $table->integer('amount');
             $table->date('occurred_at')->index();
-            $table->char('month_key', 7)->index(); // '2026-04'
+            $table->char('month_key', 7)->index();
 
             $table->string('title', 255)->nullable();
             $table->text('note')->nullable();
@@ -35,9 +35,8 @@ return new class extends Migration
             $table->tinyInteger('is_pinned')->default(0);
             $table->integer('sort_order')->default(0);
 
-            // Polymorphic связь с другими модулями
             $table->string('linked_entity_type', 50)->nullable();
-            $table->char('linked_entity_id', 26)->nullable();
+            $table->ulid('linked_entity_id')->nullable();
 
             $table->timestamps();
             $table->softDeletes();

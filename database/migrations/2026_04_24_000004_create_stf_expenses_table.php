@@ -9,19 +9,19 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('stf_expenses', function (Blueprint $table) {
-            $table->char('id', 26)->primary();
-            $table->char('user_id', 26)->index();
+            $table->ulid('id')->primary();
+            $table->ulid('user_id')->index();
 
             // ── Ссылка на вещь ────────────────────────────────────────
-            $table->char('thing_id', 26)->index();
+            $table->ulid('thing_id')->index();
 
             // ── Опциональная ссылка на событие Register ───────────────
             // Например: bought → register(bought) + expense(сумма)
-            $table->char('register_id', 26)->nullable();
+            $table->ulid('register_id')->nullable();
 
             // ── Опциональная ссылка на транзакцию Badger ─────────────
             // Null если расход записан вручную без Badger-транзакции
-            $table->char('transaction_id', 26)->nullable()->index();
+            $table->ulid('transaction_id')->nullable()->index();
 
             // ── Сумма (если нет транзакции — пишем вручную) ──────────
             $table->integer('amount')->nullable(); // минорные единицы

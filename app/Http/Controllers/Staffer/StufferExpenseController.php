@@ -34,9 +34,9 @@ class StufferExpenseController extends Controller
     public function store(Request $request)
     {
         $data = $request->validate([
-            'thing_id' => 'required|string|size:26',
-            'register_id' => 'nullable|string|size:26',
-            'transaction_id' => 'nullable|string|size:26',
+            'thing_id' => 'required|string|max:26',
+            'register_id' => 'nullable|string|max:26',
+            'transaction_id' => 'nullable|string|max:26',
             'amount' => 'nullable|integer',
             'note' => 'nullable|string',
             'occurred_at' => 'required|date',
