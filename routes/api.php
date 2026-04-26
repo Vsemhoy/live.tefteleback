@@ -36,12 +36,7 @@ Route::get('/test', function () {
     return response()->json(['message' => 'API работает!']);
 });
 
-// Route::options('/{any}', function () {
-//     return response()->json([], 204)
-//         ->header('Access-Control-Allow-Origin', 'http://localhost:3002')
-//         ->header('Access-Control-Allow-Methods', 'POST, GET, OPTIONS, PUT, DELETE')
-//         ->header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-// })->where('any', '.*');
+
 
 Route::get('/cors-test', function () {
     return response('CORS is working', 200);
@@ -53,22 +48,14 @@ Route::middleware('auth.jwt')->group(function () {
     });
 });
 
-// Route::options('/{any}', function () use ($allowedOrigins) {
-//     $origin = request()->header('Origin');
 
-//     $response = response()->noContent();
+Route::get('/opn/eventor/e/{id}', [EventorApiController::class, 'getEventPublicAction']);
 
-//     if (in_array($origin, $allowedOrigins)) {
-//         $response->headers->set('Access-Control-Allow-Origin', $origin);
-//         $response->headers->set('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-//         $response->headers->set('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-//         $response->headers->set('Access-Control-Allow-Credentials', 'true');
-//     }
-
-//     return $response;
-// })->where('any', '.*');
 
 Route::middleware('auth.jwt')->group(function () {
+
+
+
     Route::post('/eventor/getmyevents', [EventorApiController::class, 'getMyEventsAction']);
     Route::post('/eventor/getpinned ', [EventorApiController::class, 'getMyPinnedAction']);
     Route::post('/eventor/getmyevent/{id}', [EventorApiController::class, 'getMyEventAction']);

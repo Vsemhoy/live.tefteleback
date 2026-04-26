@@ -16,7 +16,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Validator;
 use Symfony\Component\Uid\Ulid;
 
-class EventorApiController extends Controller
+class EventorApiControllerTMP extends Controller
 {
 public function getMyEventsAction(Request $request): JsonResponse
 {

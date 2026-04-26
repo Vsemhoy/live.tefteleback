@@ -8,6 +8,7 @@ use App\Models\EvtEvent;
 use App\Models\EvtSection;
 use App\Models\EvtTag;
 use App\Models\EvtType;
+use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -49,6 +50,8 @@ class EventorApiController extends Controller
 
         $query = EvtEvent::with([
             'evt_type',
+            'parent:id,name,setdate',
+            'children:id,name,parent_id,setdate',
             'section:id,name,color,bgcolor,icon',
             'tags',
         ])
@@ -105,6 +108,8 @@ class EventorApiController extends Controller
 
         $query = EvtEvent::with([
             'evt_type',
+            'parent:id,name,setdate',
+            'children:id,name,parent_id,setdate',
             'section:id,name,color,bgcolor,icon',
             'tags',
         ])
@@ -133,13 +138,62 @@ class EventorApiController extends Controller
         }
 
         // Строим запрос
-        $query = EvtEvent::where('user_id', $user->id)->where('id', $id)->first();
+        $query = EvtEvent::with([
+            'parent:id,name,setdate',
+            'children:id,name,parent_id,setdate'
+        ])->where('user_id', $user->id)->where('id', $id)->first();
 
         return response()->json([
             'status' => 0, // ✅ 0 = успех
             'message' => 'OK',
             'content' => $query, // ✅ Laravel автоматически преобразует в JSON
         ]);
+    }
+
+    public function getEventPublicAction(Request $request, $id): JsonResponse
+    {
+        $event = EvtEvent::with([
+            'parent:id,name,setdate',
+            'children:id,name,parent_id,setdate',
+            'user:id,name',
+            'type',
+            'section:id,name,color,bgcolor,icon',
+            'tags',
+        ])
+            ->where('id', $id)
+            ->first();
+
+        if (! $event) {
+            return response()->json(['status' => 0, 'message' => 'Event not found'], 404);
+        }
+
+        if ($event->access !== 3) {
+            $authUser = $this->tryGetUser($request);
+
+            if (! $authUser || $authUser->id !== $event->user_id) {
+                return response()->json(['status' => 0, 'message' => 'Access denied'], 403);
+            }
+        }
+
+        return response()->json(['status' => 1, 'message' => 'OK', 'content' => $event]);
+    }
+
+    // Мягкая проверка — не бросает исключение, просто null если нет токена
+    private function tryGetUser(Request $request): ?User
+    {
+        try {
+            $token = $request->cookie('access_token');
+            if (! $token) return null;
+
+            $decoded = \Firebase\JWT\JWT::decode(
+                $token,
+                new \Firebase\JWT\Key(config('jwt.secret'), config('jwt.algo'))
+            );
+
+            return User::find($decoded->sub);
+        } catch (\Exception $e) {
+            return null;
+        }
     }
 
     public function getMySections(Request $request): JsonResponse
@@ -310,6 +364,7 @@ class EventorApiController extends Controller
 
         $rules = [
             'id' => 'nullable|string|max:26',
+            'parent_id' => 'nullable|string|max:26',
             'section_id' => 'nullable|exists:evt_sections,id',
             'name' => 'nullable|string|max:128|required_without:content',
             'content' => 'nullable|string|required_without:name',
@@ -321,6 +376,7 @@ class EventorApiController extends Controller
             'client' => 'nullable|string|max:120',
             'format' => 'nullable|integer|between:1,3',
             'status' => 'nullable|integer|between:1,3',
+            'access' => 'nullable|integer|between:0,6',
             'is_locked' => 'nullable|boolean',
             'is_pinned' => 'nullable|boolean',
             'is_blurred' => 'nullable|boolean',
@@ -365,6 +421,8 @@ class EventorApiController extends Controller
                 'is_pinned',
                 'is_blurred',
                 'setdate',
+                'parent_id',
+                'access',
             ];
 
             if (! $eventId) {
@@ -378,6 +436,7 @@ class EventorApiController extends Controller
                     'status' => $validated['status'] ?? 2,
                     'access' => 1,
                     'setdate' => $validated['setdate'] ?? now(),
+                    'parent_id' => $validated['parent_id'] ?? null,
                 ];
 
                 foreach ($fillableFields as $field) {
@@ -535,6 +594,7 @@ class EventorApiController extends Controller
 
         $rules = [
             'section_id' => 'nullable|exists:evt_sections,id',
+            'parent_id' => 'nullable|string|max:26',
             'name' => 'nullable|string|max:128|required_without:content',
             'content' => 'nullable|string|required_without:name',
             'metadata' => 'nullable|string|max:25',
@@ -545,13 +605,14 @@ class EventorApiController extends Controller
             'client' => 'nullable|string|max:120',
             'format' => 'nullable|integer|between:1,3',
             'status' => 'nullable|integer|between:1,3',
-            'access' => 'nullable|integer|between:0,4',
+            'access' => 'nullable|integer|between:0,6',
             'is_locked' => 'nullable|boolean',
             'is_pinned' => 'nullable|boolean',
             'is_blurred' => 'nullable|boolean',
             'tag_ids' => 'nullable|array',
             'tag_ids.*' => 'string|max:26|exists:evt_tags,id',
             'setdate' => 'nullable|date',
+            
         ];
 
         $messages = [
@@ -586,6 +647,8 @@ class EventorApiController extends Controller
             'is_pinned',
             'is_blurred',
             'setdate',
+            'parent_id',
+            'access',
         ];
 
         try {
