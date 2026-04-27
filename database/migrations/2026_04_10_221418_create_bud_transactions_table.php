@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('bud_transactions', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->ulid('user_id')->index();
-            $table->ulid('layer_id')->index();
+            $table->ulid('layer_id')->index()->nullable();
             $table->ulid('account_id')->index();
             $table->ulid('target_account_id')->nullable();
             $table->ulid('group_id')->nullable()->index();

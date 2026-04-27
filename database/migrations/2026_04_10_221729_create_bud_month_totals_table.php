@@ -14,7 +14,7 @@ return new class extends Migration
         Schema::create('bud_month_totals', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->ulid('user_id')->index();
-            $table->ulid('layer_id');
+            $table->ulid('layer_id')->nullable();
             $table->ulid('account_id');
             $table->char('month_key', 7);
 
