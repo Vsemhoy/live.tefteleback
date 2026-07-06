@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Badger;
 
 use App\Http\Controllers\Controller;
+use App\Models\BudMonthTotal;
 use App\Models\BudTransaction;
 use App\Services\BadgerBalanceService;
 use Carbon\Carbon;
@@ -13,8 +14,6 @@ class BadgerClosingController extends Controller
         private BadgerBalanceService $balanceService
     ) {}
 
-    // recalcFromMonth — пересчитывает цепочку месяцев от fromMonthKey
-    // до последнего месяца с транзакциями (или текущего — что позже)
     public function recalcFromMonth(string $userId, string $accountId, string $fromMonthKey): void
     {
         $months = $this->getMonthsFrom($accountId, $fromMonthKey);
@@ -26,13 +25,26 @@ class BadgerClosingController extends Controller
 
     private function getMonthsFrom(string $accountId, string $fromMonthKey): array
     {
-        // Считаем до последнего месяца с транзакциями ИЛИ до текущего — что позже
+        // Кандидаты на конечный месяц:
+        // 1. Последний месяц с транзакциями
         $lastTxMonth = BudTransaction::where('account_id', $accountId)
             ->whereNull('deleted_at')
             ->max('month_key');
 
+        // 2. Последний уже существующий тотал — он тоже должен пересчитаться
+        //    т.к. его opening мог устареть из-за изменений в предыдущих месяцах
+        $lastTotalMonth = BudMonthTotal::where('account_id', $accountId)
+            ->max('month_key');
+
+        // 3. Текущий месяц — минимальная граница
         $currentMonthKey = now()->format('Y-m');
-        $endMonthKey     = max($lastTxMonth ?? $currentMonthKey, $currentMonthKey);
+
+        // Берём максимум из всех трёх
+        $endMonthKey = max(
+            $lastTxMonth    ?? $currentMonthKey,
+            $lastTotalMonth ?? $currentMonthKey,
+            $currentMonthKey
+        );
 
         $fullRange = [];
         $cursor    = Carbon::createFromFormat('Y-m', $fromMonthKey)->startOfMonth();
