@@ -2,8 +2,8 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Seeder;
 use App\Models\User;
+use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\Hash;
 
 class CreateVsemhoyUserSeeder extends Seeder
@@ -13,11 +13,13 @@ class CreateVsemhoyUserSeeder extends Seeder
      */
     public function run(): void
     {
-        User::create([
-            'name' => 'Vsemhoy',
-            'email' => 'vsemhoy@live.ru',
-            'password' => Hash::make('xxxxxxxxx'), // Используем Hash::make (без скобок в конце!)
-            'status' => 1,
-        ]);
+        User::updateOrCreate(
+            ['email' => env('DEV_USER_EMAIL', 'test@example.com')],
+            [
+                'name' => env('DEV_USER_NAME', 'Test User'),
+                'password' => Hash::make(env('DEV_USER_PASSWORD', 'password')),
+                'status' => User::STATUS_ACTIVE,
+            ]
+        );
     }
 }
