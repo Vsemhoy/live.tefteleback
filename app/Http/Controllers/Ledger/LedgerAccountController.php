@@ -1,19 +1,19 @@
 <?php
 
-namespace App\Http\Controllers\Badger;
+namespace App\Http\Controllers\Ledger;
 
 use App\Http\Controllers\Controller;
-use App\Models\BudAccount;
-use App\Models\BudLayer;
-use App\Models\BudTransaction;
-use App\Services\BadgerBalanceService;
+use App\Models\LedAccount;
+use App\Models\LedLayer;
+use App\Models\LedTransaction;
+use App\Services\LedgerBalanceService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
 
-class BadgerAccountController extends Controller
+class LedgerAccountController extends Controller
 {
     public function __construct(
-        private BadgerBalanceService $balanceService
+        private LedgerBalanceService $balanceService
     ) {}
 
     public function index(Request $request)
@@ -24,12 +24,12 @@ class BadgerAccountController extends Controller
             return response()->json(['error' => 'Unauthenticated'], 401);
         }
 
-        $layer = BudLayer::firstOrCreate(
+        $layer = LedLayer::firstOrCreate(
             ['user_id' => $user->id, 'type' => 'base'],
             ['id' => (string) Str::ulid(), 'name' => 'Base', 'is_active' => 1]
         );
 
-        $accounts = BudAccount::where('user_id', $user->id)
+        $accounts = LedAccount::where('user_id', $user->id)
             ->where('layer_id', $layer->id)
             ->where('is_archived', 0)
             ->withCount(['transactions' => fn($q) => $q->whereNull('deleted_at')])
@@ -62,11 +62,11 @@ class BadgerAccountController extends Controller
             'interest_start'  => 'nullable|date',
         ]);
 
-        $layer = BudLayer::where('user_id', $user->id)
+        $layer = LedLayer::where('user_id', $user->id)
             ->where('type', 'base')
             ->firstOrFail();
 
-        $account = BudAccount::create([
+        $account = LedAccount::create([
             'id'       => (string) Str::ulid(),
             'user_id'  => $user->id,
             'layer_id' => $layer->id,
@@ -78,7 +78,7 @@ class BadgerAccountController extends Controller
 
     public function update(Request $request, string $id)
     {
-        $account = BudAccount::where('id', $id)
+        $account = LedAccount::where('id', $id)
             ->where('user_id', $request->user()->id)
             ->firstOrFail();
 
@@ -98,7 +98,7 @@ class BadgerAccountController extends Controller
         ]);
 
         // Защита: не менять ставку если уже есть транзакции
-        $hasTx = BudTransaction::where('account_id', $id)
+        $hasTx = LedTransaction::where('account_id', $id)
             ->whereNull('deleted_at')
             ->exists();
 
@@ -113,7 +113,7 @@ class BadgerAccountController extends Controller
 
     public function destroy(Request $request, string $id)
     {
-        $account = BudAccount::where('id', $id)
+        $account = LedAccount::where('id', $id)
             ->where('user_id', $request->user()->id)
             ->firstOrFail();
 

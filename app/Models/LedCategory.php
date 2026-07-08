@@ -6,9 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
-class BudCategory extends Model
+class LedCategory extends Model
 {
-    protected $table = 'bud_categories';
+    protected $table = 'led_categories';
 
     protected $fillable = [
         'id', 'user_id', 'parent_id',
@@ -43,11 +43,11 @@ class BudCategory extends Model
 
     public function children(): HasMany
     {
-        return $this->hasMany(BudCategory::class, 'parent_id', 'id')->orderBy('sort_order');
+        return $this->hasMany(LedCategory::class, 'parent_id', 'id')->orderBy('sort_order');
     }
 
     public function parent(): ?self
     {
-        return $this->belongsTo(BudCategory::class, 'parent_id', 'id');
+        return $this->belongsTo(LedCategory::class, 'parent_id', 'id');
     }
 }

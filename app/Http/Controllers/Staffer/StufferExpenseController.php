@@ -47,12 +47,12 @@ class StufferExpenseController extends Controller
         if (empty($data['amount']) && empty($data['transaction_id'])) {
             return response()->json([
                 'status' => 0,
-                'message' => 'Provide amount or link a Badger transaction',
+                'message' => 'Provide amount or link a Ledger transaction',
             ], 422);
         }
 
         if (!empty($data['transaction_id']) && empty($data['amount'])) {
-            $tx = \App\Models\BudTransaction::find($data['transaction_id']);
+            $tx = \App\Models\LedTransaction::find($data['transaction_id']);
             if ($tx) {
                 $data['amount'] = $tx->amount;
             }

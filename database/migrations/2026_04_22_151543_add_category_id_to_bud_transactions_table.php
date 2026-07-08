@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::table('bud_transactions', function (Blueprint $table) {
+        Schema::table('led_transactions', function (Blueprint $table) {
             $table->char('category_id', 26)->nullable()->after('group_id')->index();
         });
     }
@@ -21,7 +21,7 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('bud_transactions', function (Blueprint $table) {
+        Schema::table('led_transactions', function (Blueprint $table) {
             $table->dropIndex(['category_id']);
             $table->dropColumn('category_id');
         });

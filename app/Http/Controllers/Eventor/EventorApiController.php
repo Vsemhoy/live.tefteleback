@@ -53,6 +53,7 @@ class EventorApiController extends Controller
             'parent:id,name,setdate',
             'children:id,name,parent_id,setdate',
             'section:id,name,color,bgcolor,icon',
+            'primaryContent',
             'tags',
         ])
             ->where('user_id', $user->id)
@@ -111,6 +112,7 @@ class EventorApiController extends Controller
             'parent:id,name,setdate',
             'children:id,name,parent_id,setdate',
             'section:id,name,color,bgcolor,icon',
+            'primaryContent',
             'tags',
         ])
             ->where('user_id', $user->id)
@@ -140,7 +142,8 @@ class EventorApiController extends Controller
         // Строим запрос
         $query = EvtEvent::with([
             'parent:id,name,setdate',
-            'children:id,name,parent_id,setdate'
+            'children:id,name,parent_id,setdate',
+            'primaryContent',
         ])->where('user_id', $user->id)->where('id', $id)->first();
 
         return response()->json([
@@ -158,6 +161,7 @@ class EventorApiController extends Controller
             'user:id,name',
             'type',
             'section:id,name,color,bgcolor,icon',
+            'primaryContent',
             'tags',
         ])
             ->where('id', $id)
@@ -372,6 +376,7 @@ class EventorApiController extends Controller
             'type_id' => 'nullable|exists:evt_types,id',
             'category_id' => 'nullable|exists:evt_categories,id',
             'project_id' => 'nullable|exists:projects,id',
+            'exploiter_event_id' => 'nullable|string|size:26',
             'location' => 'nullable|string|max:50',
             'client' => 'nullable|string|max:120',
             'format' => 'nullable|integer|between:1,3',
@@ -412,6 +417,7 @@ class EventorApiController extends Controller
                 'type_id',
                 'category_id',
                 'project_id',
+                'exploiter_event_id',
                 'location',
                 'client',
                 'format',
@@ -431,7 +437,7 @@ class EventorApiController extends Controller
                     'id' => (string) Ulid::generate(),
                     'user_id' => $user->id,
                     'name' => $validated['name'] ?? null,
-                    'content' => $validated['content'],
+                    'content' => $validated['content'] ?? null,
                     'format' => $validated['format'] ?? 1,
                     'status' => $validated['status'] ?? 2,
                     'access' => 1,
@@ -446,6 +452,7 @@ class EventorApiController extends Controller
                 }
 
                 $item = EvtEvent::create($data);
+                $item->syncPrimaryContent($validated['content'] ?? null);
 
                 if (array_key_exists('tag_ids', $validated)) {
                     $requestedTagIds = array_values(array_unique($validated['tag_ids'] ?? []));
@@ -470,7 +477,7 @@ class EventorApiController extends Controller
                 return response()->json([
                     'status' => 1,
                     'message' => 'Event created successfully',
-                    'content' => $item,
+                    'content' => $item->fresh(['primaryContent', 'tags']),
                     'duration' => round(microtime(true) - LARAVEL_START, 3),
                 ], 201);
             }
@@ -509,6 +516,10 @@ class EventorApiController extends Controller
 
             $event->update($updateData);
 
+            if (array_key_exists('content', $validated)) {
+                $event->syncPrimaryContent($validated['content']);
+            }
+
             if (array_key_exists('tag_ids', $validated)) {
                 $requestedTagIds = array_values(array_unique($validated['tag_ids'] ?? []));
                 $allowedTagIds = EvtTag::whereIn('id', $requestedTagIds)
@@ -530,6 +541,7 @@ class EventorApiController extends Controller
             }
 
             $event->refresh();
+            $event->load('primaryContent');
 
             return response()->json([
                 'status' => 1,
@@ -601,6 +613,7 @@ class EventorApiController extends Controller
             'type_id' => 'nullable|exists:evt_types,id',
             'category_id' => 'nullable|exists:evt_categories,id',
             'project_id' => 'nullable|exists:projects,id',
+            'exploiter_event_id' => 'nullable|string|size:26',
             'location' => 'nullable|string|max:50',
             'client' => 'nullable|string|max:120',
             'format' => 'nullable|integer|between:1,3',
@@ -639,6 +652,7 @@ class EventorApiController extends Controller
             'type_id',
             'category_id',
             'project_id',
+            'exploiter_event_id',
             'location',
             'client',
             'format',
@@ -662,6 +676,10 @@ class EventorApiController extends Controller
 
             $event->update($updateData);
 
+            if (array_key_exists('content', $validated)) {
+                $event->syncPrimaryContent($validated['content']);
+            }
+
             if (array_key_exists('tag_ids', $validated)) {
                 $requestedTagIds = array_values(array_unique($validated['tag_ids'] ?? []));
                 $allowedTagIds = EvtTag::whereIn('id', $requestedTagIds)
@@ -683,6 +701,7 @@ class EventorApiController extends Controller
             }
 
             $event->refresh();
+            $event->load('primaryContent');
 
             return response()->json([
                 'status' => 1,

@@ -1,17 +1,17 @@
 <?php
 
-namespace App\Http\Controllers\Badger;
+namespace App\Http\Controllers\Ledger;
 
 use App\Http\Controllers\Controller;
-use App\Models\BudTransaction;
-use App\Models\BudTransactionGroup;
+use App\Models\LedTransaction;
+use App\Models\LedTransactionGroup;
 use Illuminate\Http\Request;
 
-class BadgerGroupController extends Controller
+class LedgerGroupController extends Controller
 {
     public function index(Request $request)
     {
-        return BudTransactionGroup::where('user_id', $request->user()->id)
+        return LedTransactionGroup::where('user_id', $request->user()->id)
             ->orderBy('name')
             ->get();
     }
@@ -26,7 +26,7 @@ class BadgerGroupController extends Controller
 
         $user = $request->user();
 
-        $group = BudTransactionGroup::create([
+        $group = LedTransactionGroup::create([
             'user_id' => $user->id,
             ...$data,
         ]);
@@ -42,7 +42,7 @@ class BadgerGroupController extends Controller
             'is_disabled' => 'nullable|boolean',
         ]);
 
-        $group = BudTransactionGroup::where('user_id', $request->user()->id)
+        $group = LedTransactionGroup::where('user_id', $request->user()->id)
             ->where('id', $id)
             ->firstOrFail();
 
@@ -53,7 +53,7 @@ class BadgerGroupController extends Controller
 
     public function toggle(Request $request, string $id)
     {
-        $group = BudTransactionGroup::where('user_id', $request->user()->id)
+        $group = LedTransactionGroup::where('user_id', $request->user()->id)
             ->where('id', $id)
             ->firstOrFail();
 
@@ -61,7 +61,7 @@ class BadgerGroupController extends Controller
         $group->save();
 
         // Synchronously update is_disabled on all transactions in group
-        BudTransaction::where('group_id', $group->id)
+        LedTransaction::where('group_id', $group->id)
             ->update(['is_disabled' => $group->is_disabled]);
 
         return $group;
@@ -69,7 +69,7 @@ class BadgerGroupController extends Controller
 
     public function destroy(Request $request, string $id)
     {
-        $group = BudTransactionGroup::where('user_id', $request->user()->id)
+        $group = LedTransactionGroup::where('user_id', $request->user()->id)
             ->where('id', $id)
             ->firstOrFail();
 

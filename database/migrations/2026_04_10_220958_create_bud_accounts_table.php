@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('bud_accounts', function (Blueprint $table) {
+        Schema::create('led_accounts', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->ulid('user_id')->index();
             $table->ulid('layer_id')->index();
@@ -32,6 +32,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('bud_accounts');
+        Schema::dropIfExists('led_accounts');
     }
 };

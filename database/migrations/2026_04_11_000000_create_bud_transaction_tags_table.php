@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('bud_transaction_tags', function (Blueprint $table) {
+        Schema::create('led_transaction_tags', function (Blueprint $table) {
             $table->ulid('transaction_id');
             $table->ulid('tag_id');
 
@@ -17,7 +17,7 @@ return new class extends Migration
             $table->index('transaction_id');
 
             $table->foreign('transaction_id')
-                ->references('id')->on('bud_transactions')
+                ->references('id')->on('led_transactions')
                 ->onDelete('cascade');
 
             $table->foreign('tag_id')
@@ -28,6 +28,6 @@ return new class extends Migration
 
     public function down(): void
     {
-        Schema::dropIfExists('bud_transaction_tags');
+        Schema::dropIfExists('led_transaction_tags');
     }
 };

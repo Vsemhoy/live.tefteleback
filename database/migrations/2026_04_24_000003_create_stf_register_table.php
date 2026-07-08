@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('stf_register', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->ulid('user_id')->index();
-            $table->ulid('thing_id')->index();
+            $table->ulid('thing_id')->nullable()->index();
 
             // ── Тип события ───────────────────────────────────────────
             $table->enum('event_type', [
@@ -44,6 +44,17 @@ return new class extends Migration
 
             // ── Свободная заметка ─────────────────────────────────────
             $table->text('note')->nullable();
+            $table->json('details')->nullable();
+
+            // Exploiter workflow/priority and rollup cache.
+            // Authoritative money lives in led_transactions; authoritative time lives in sys_timer_entries.
+            $table->unsignedTinyInteger('status')->nullable()->index();
+            $table->unsignedTinyInteger('priority')->nullable()->index();
+            $table->boolean('is_pinned')->default(false)->index();
+            $table->integer('part_cost')->default(0);
+            $table->integer('labor_cost')->default(0);
+            $table->integer('time_self_min')->default(0);
+            $table->integer('time_service_min')->default(0);
 
             $table->date('occurred_at');   // дата события (выбирает юзер)
             $table->timestamps();
@@ -53,7 +64,8 @@ return new class extends Migration
             // При soft delete thing'а — register остаётся.
             // from/to location — nullOnDelete (локация удалена, но событие было)
             $table->foreign('thing_id')
-                  ->references('id')->on('stf_things');
+                  ->references('id')->on('stf_things')
+                  ->nullOnDelete();
 
             $table->foreign('from_location_id')
                   ->references('id')->on('stf_locations')
@@ -62,6 +74,9 @@ return new class extends Migration
             $table->foreign('to_location_id')
                   ->references('id')->on('stf_locations')
                   ->nullOnDelete();
+
+            $table->index(['thing_id', 'occurred_at']);
+            $table->index(['status', 'occurred_at']);
         });
     }
 

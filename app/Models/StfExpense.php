@@ -38,6 +38,6 @@ class StfExpense extends Model
 
     public function transaction()
     {
-        return $this->belongsTo(BudTransaction::class, 'transaction_id');
+        return $this->belongsTo(LedTransaction::class, 'transaction_id');
     }
 }

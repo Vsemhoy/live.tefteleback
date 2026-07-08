@@ -24,7 +24,7 @@ return new class extends Migration
             // ── Иерархия (Asset вложен в Asset, Item относится к Asset) ─
             $table->ulid('parent_id')->nullable();
 
-            // ── Категория (общая таблица bud_categories) ─────────────
+            // ── Категория (общая таблица led_categories) ─────────────
             $table->ulid('category_id')->nullable()->index();
 
             // ── Текущее состояние (денормализация для скорости) ───────
@@ -56,6 +56,8 @@ return new class extends Migration
             $table->timestamp('last_opened_at')->nullable();
 
             $table->boolean('is_archived')->default(false);
+            $table->boolean('track_location')->default(true)->index();
+            $table->boolean('track_lifecycle')->default(false)->index();
             $table->timestamps();
             $table->softDeletes();
 

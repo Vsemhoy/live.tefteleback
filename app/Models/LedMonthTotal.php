@@ -5,9 +5,9 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
-class BudMonthTotal extends Model
+class LedMonthTotal extends Model
 {
-    protected $table = 'bud_month_totals';
+    protected $table = 'led_month_totals';
 
     public $timestamps = ['updated_at'];
 

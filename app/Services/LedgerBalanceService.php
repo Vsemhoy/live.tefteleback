@@ -2,15 +2,15 @@
 
 namespace App\Services;
 
-use App\Models\BudAccount;
-use App\Models\BudMonthTotal;
-use App\Models\BudTransaction;
+use App\Models\LedAccount;
+use App\Models\LedMonthTotal;
+use App\Models\LedTransaction;
 use Carbon\Carbon;
 
-class BadgerBalanceService
+class LedgerBalanceService
 {
     // ─── Ежедневное начисление процентов (минорные единицы) ───────────
-    // Зеркало логики из badgerUtils.js — держать синхронно!
+    // Зеркало логики из LedgerUtils.js — держать синхронно!
     // balance  — баланс в копейках (отрицательный = долг)
     // rateInt  — ставка * 100 (2350 = 23.50%)
     // date     — Carbon дата дня начисления
@@ -25,7 +25,7 @@ class BadgerBalanceService
     // ─── Суммарные проценты за месяц ─────────────────────────────────
     // Считаем пободённо от opening, накапливаем транзакции по датам,
     // затем начисляем проценты на итоговый баланс каждого дня.
-    public function calcMonthInterest(BudAccount $account, int $opening, string $monthKey): int
+    public function calcMonthInterest(LedAccount $account, int $opening, string $monthKey): int
     {
         if (!$account->interest_rate || !$account->interest_start) return 0;
 
@@ -34,7 +34,7 @@ class BadgerBalanceService
         $monthEnd      = Carbon::createFromFormat('Y-m', $monthKey)->endOfMonth();
 
         // Транзакции месяца, отсортированные по дате
-        $txs = BudTransaction::where('account_id', $account->id)
+        $txs = LedTransaction::where('account_id', $account->id)
             ->where('month_key', $monthKey)
             ->where('is_disabled', 0)
             ->whereNull('deleted_at')
@@ -75,7 +75,7 @@ class BadgerBalanceService
     }
 
     // ─── Знаковая дельта от транзакции ───────────────────────────────
-    public function txDelta(BudTransaction $tx): int
+    public function txDelta(LedTransaction $tx): int
     {
         return match ($tx->flow_kind) {
             'income', 'transfer_in'  => $tx->amount,
@@ -87,17 +87,17 @@ class BadgerBalanceService
     // ─── Пересчёт одного месяца ──────────────────────────────────────
     public function recalcMonth(string $userId, string $accountId, string $monthKey): void
     {
-        $account = BudAccount::find($accountId);
+        $account = LedAccount::find($accountId);
 
         $prev      = Carbon::createFromFormat('Y-m', $monthKey)->subMonth()->format('Y-m');
-        $prevTotal = BudMonthTotal::where([
+        $prevTotal = LedMonthTotal::where([
             'account_id' => $accountId,
             'month_key'  => $prev,
         ])->first();
 
         $opening = $prevTotal?->closing_balance ?? 0;
 
-        $txs = BudTransaction::where('account_id', $accountId)
+        $txs = LedTransaction::where('account_id', $accountId)
             ->where('month_key', $monthKey)
             ->where('is_disabled', 0)
             ->whereNull('deleted_at')
@@ -123,7 +123,7 @@ class BadgerBalanceService
             + $reconciliationPos - $reconciliationNeg
             + $interestTotal; // отрицательное — долг вырос
 
-        BudMonthTotal::updateOrCreate(
+        LedMonthTotal::updateOrCreate(
             ['account_id' => $accountId, 'month_key' => $monthKey],
             [
                 'user_id'            => $userId,
@@ -145,23 +145,23 @@ class BadgerBalanceService
     // ─── markDirty ────────────────────────────────────────────────────
     public function markDirty(string $userId, string $accountId, string $monthKey): void
     {
-        BudMonthTotal::updateOrCreate(
+        LedMonthTotal::updateOrCreate(
             ['account_id' => $accountId, 'month_key' => $monthKey],
             ['user_id' => $userId, 'is_dirty' => 1, 'updated_at' => now()]
         );
     }
 
     // ─── calcBalanceToday ─────────────────────────────────────────────
-    // Используется в BadgerAccountController для balance_today в сайдбаре.
+    // Используется в LedgerAccountController для balance_today в сайдбаре.
     // Opening = closing предыдущего месяца (уже включает проценты).
     // Затем накатываем транзакции текущего месяца + проценты за каждый день.
-    public function calcBalanceToday(BudAccount $account): int
+    public function calcBalanceToday(LedAccount $account): int
     {
         $today    = now()->startOfDay();
         $monthKey = $today->format('Y-m');
         $prevKey  = $today->copy()->subMonth()->format('Y-m');
 
-        $prevTotal = BudMonthTotal::where([
+        $prevTotal = LedMonthTotal::where([
             'account_id' => $account->id,
             'month_key'  => $prevKey,
         ])->first();
@@ -169,7 +169,7 @@ class BadgerBalanceService
         $opening = $prevTotal?->closing_balance ?? 0;
 
         // Транзакции с начала месяца по сегодня включительно
-        $txs = BudTransaction::where('account_id', $account->id)
+        $txs = LedTransaction::where('account_id', $account->id)
             ->where('is_disabled', 0)
             ->whereNull('deleted_at')
             ->where('month_key', $monthKey)

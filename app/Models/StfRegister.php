@@ -21,6 +21,14 @@ class StfRegister extends Model
         'return_expected',
         'amount',
         'note',
+        'details',
+        'status',
+        'priority',
+        'is_pinned',
+        'part_cost',
+        'labor_cost',
+        'time_self_min',
+        'time_service_min',
         'occurred_at',
     ];
 
@@ -28,6 +36,14 @@ class StfRegister extends Model
         'occurred_at' => 'date',
         'return_expected' => 'date',
         'amount' => 'integer',
+        'details' => 'array',
+        'status' => 'integer',
+        'priority' => 'integer',
+        'is_pinned' => 'boolean',
+        'part_cost' => 'integer',
+        'labor_cost' => 'integer',
+        'time_self_min' => 'integer',
+        'time_service_min' => 'integer',
     ];
 
     public function thing()
@@ -48,6 +64,40 @@ class StfRegister extends Model
     public function expense()
     {
         return $this->hasOne(StfExpense::class, 'register_id');
+    }
+
+    public function ledgerTransactions()
+    {
+        return $this->hasMany(LedTransaction::class, 'exploiter_event_id')
+            ->orderBy('sort_order');
+    }
+
+    public function timerEntries()
+    {
+        return $this->hasMany(SysTimerEntry::class, 'source_id')
+            ->where('source_module', 'exploiter')
+            ->orderBy('sort_order');
+    }
+
+    public function eventorEvents()
+    {
+        return $this->hasMany(EvtEvent::class, 'exploiter_event_id');
+    }
+
+    public function contentBlocks()
+    {
+        return $this->hasMany(CntContent::class, 'source_id')
+            ->where('source_module', 'exploiter')
+            ->orderBy('sort_order');
+    }
+
+    public function primaryContent()
+    {
+        return $this->hasOne(CntContent::class, 'source_id')
+            ->where('source_module', 'exploiter')
+            ->where('field', 'content')
+            ->where('kind', 'markdown')
+            ->where('is_primary', true);
     }
 
     public static function statusFromEvent(string $eventType): string

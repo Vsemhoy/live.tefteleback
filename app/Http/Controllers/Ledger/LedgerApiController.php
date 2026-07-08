@@ -17,7 +17,7 @@ use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 use Symfony\Component\Uid\Ulid;
 
-class BadgerApiController extends Controller {
+class LedgerApiController extends Controller {
 
 
 

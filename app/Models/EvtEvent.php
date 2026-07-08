@@ -25,6 +25,7 @@ class EvtEvent extends Model
         'section_id',
         'category_id',
         'project_id',
+        'exploiter_event_id',
         'content',
         'format',
         'metadata',
@@ -73,6 +74,27 @@ class EvtEvent extends Model
         return $this->belongsTo(EvtCategory::class, 'category_id');
     }
 
+    public function exploiterEvent()
+    {
+        return $this->belongsTo(StfRegister::class, 'exploiter_event_id');
+    }
+
+    public function contentBlocks()
+    {
+        return $this->hasMany(CntContent::class, 'source_id')
+            ->where('source_module', 'eventor')
+            ->orderBy('sort_order');
+    }
+
+    public function primaryContent()
+    {
+        return $this->hasOne(CntContent::class, 'source_id')
+            ->where('source_module', 'eventor')
+            ->where('field', 'content')
+            ->where('kind', 'markdown')
+            ->where('is_primary', true);
+    }
+
     public function tags()
     {
         return $this->belongsToMany(EvtTag::class, 'evt_event_tags', 'event_id', 'tag_id')
@@ -108,6 +130,18 @@ class EvtEvent extends Model
     public function embeds()
     {
         return $this->hasMany(EvtEmbed::class, 'event_id')->orderBy('order');
+    }
+
+    public function syncPrimaryContent(?string $body): ?CntContent
+    {
+        return CntContent::syncPrimaryMarkdown(
+            $this->user_id,
+            'eventor',
+            $this->id,
+            $body,
+            'content',
+            $this->name
+        );
     }
 
     protected static function boot()

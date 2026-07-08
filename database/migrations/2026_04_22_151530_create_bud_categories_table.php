@@ -8,7 +8,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        Schema::create('bud_categories', function (Blueprint $table) {
+        Schema::create('led_categories', function (Blueprint $table) {
             $table->ulid('id')->primary();
 
             $table->ulid('user_id');
@@ -30,12 +30,12 @@ return new class extends Migration
             $table->index(['user_id', 'parent_id', 'sort_order']);
 
             $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
-            $table->foreign('parent_id')->references('id')->on('bud_categories')->nullOnDelete();
+            $table->foreign('parent_id')->references('id')->on('led_categories')->nullOnDelete();
         });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('bud_categories');
+        Schema::dropIfExists('led_categories');
     }
 };

@@ -7,13 +7,14 @@ use App\Http\Controllers\Staffer\StufferRegisterController;
 use App\Http\Controllers\Staffer\StufferThingController;
 use App\Http\Controllers\Staffer\StufferExpenseController;
 use App\Models\User;
-use App\Models\BudCategory;
+use App\Models\LedCategory;
 use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Badger\BadgerAccountController;
-use App\Http\Controllers\Badger\BadgerGroupController;
-use App\Http\Controllers\Badger\BadgerMonthTotalsController;
-use App\Http\Controllers\Badger\BadgerTransactionController;
-use App\Http\Controllers\Badger\BadgerCategoryController;
+use App\Http\Controllers\Ledger\LedgerAccountController;
+use App\Http\Controllers\Ledger\LedgerGroupController;
+use App\Http\Controllers\Ledger\LedgerMonthTotalsController;
+use App\Http\Controllers\Ledger\LedgerTransactionController;
+use App\Http\Controllers\Ledger\LedgerCategoryController;
+use App\Http\Controllers\System\TemplateController;
 
 Route::post('/auth/login', [AuthController::class, 'login']);
 
@@ -76,43 +77,48 @@ Route::middleware('auth.jwt')->group(function () {
     Route::post('/eventor/updatetag/{id}', [EventorApiController::class, 'updateTagAction']);
     Route::delete('/eventor/deletetag/{id}', [EventorApiController::class, 'deleteTagAction']);
 
-    // Route::prefix('badger')->group(function () {
+    Route::get('/templates', [TemplateController::class, 'index']);
+    Route::post('/templates', [TemplateController::class, 'store']);
+    Route::put('/templates/{id}', [TemplateController::class, 'update']);
+    Route::delete('/templates/{id}', [TemplateController::class, 'destroy']);
+
+    // Route::prefix('ledger')->group(function () {
         // ── Accounts ─────────────────────────────────────────────────
-        Route::get   ('/badger/accounts',           [BadgerAccountController::class, 'index']);
-        Route::post  ('/badger/accounts',           [BadgerAccountController::class, 'store']);
-        Route::put   ('/badger/accounts/{id}',      [BadgerAccountController::class, 'update']);
-        Route::delete('/badger/accounts/{id}',      [BadgerAccountController::class, 'destroy']);
+        Route::get   ('/ledger/accounts',           [LedgerAccountController::class, 'index']);
+        Route::post  ('/ledger/accounts',           [LedgerAccountController::class, 'store']);
+        Route::put   ('/ledger/accounts/{id}',      [LedgerAccountController::class, 'update']);
+        Route::delete('/ledger/accounts/{id}',      [LedgerAccountController::class, 'destroy']);
         
 
         // ── Transactions ──────────────────────────────────────────────
-        Route::get   ('/badger/transactions',             [BadgerTransactionController::class, 'index']);
-        Route::post  ('/badger/transactions',             [BadgerTransactionController::class, 'store']);
-        Route::get   ('/badger/transactions/{id}',        [BadgerTransactionController::class, 'show']);
-        Route::put   ('/badger/transactions/{id}',        [BadgerTransactionController::class, 'update']);
-        Route::delete('/badger/transactions/{id}',        [BadgerTransactionController::class, 'destroy']);
-        Route::patch ('/badger/transactions/{id}/move',   [BadgerTransactionController::class, 'move']);
+        Route::get   ('/ledger/transactions',             [LedgerTransactionController::class, 'index']);
+        Route::post  ('/ledger/transactions',             [LedgerTransactionController::class, 'store']);
+        Route::get   ('/ledger/transactions/{id}',        [LedgerTransactionController::class, 'show']);
+        Route::put   ('/ledger/transactions/{id}',        [LedgerTransactionController::class, 'update']);
+        Route::delete('/ledger/transactions/{id}',        [LedgerTransactionController::class, 'destroy']);
+        Route::patch ('/ledger/transactions/{id}/move',   [LedgerTransactionController::class, 'move']);
 
 
-        Route::patch ('/badger/transactions/{id}/toggledisabled',  [BadgerTransactionController::class, 'toggleDisabled']);
+        Route::patch ('/ledger/transactions/{id}/toggledisabled',  [LedgerTransactionController::class, 'toggleDisabled']);
 
         
         // ── Categories ────────────────────────────────────────────────
-        Route::post('/badger/categories/reorder',   [BadgerCategoryController::class, 'reorder']);
-        Route::get   ('/badger/categories',         [BadgerCategoryController::class, 'index']);
-        Route::post  ('/badger/categories',         [BadgerCategoryController::class, 'store']);
-        Route::put   ('/badger/categories/{id}',    [BadgerCategoryController::class, 'update']);
-        Route::delete('/badger/categories/{id}',    [BadgerCategoryController::class, 'destroy']);
+        Route::post('/ledger/categories/reorder',   [LedgerCategoryController::class, 'reorder']);
+        Route::get   ('/ledger/categories',         [LedgerCategoryController::class, 'index']);
+        Route::post  ('/ledger/categories',         [LedgerCategoryController::class, 'store']);
+        Route::put   ('/ledger/categories/{id}',    [LedgerCategoryController::class, 'update']);
+        Route::delete('/ledger/categories/{id}',    [LedgerCategoryController::class, 'destroy']);
 
 
         // ── Groups ────────────────────────────────────────────────────
-        Route::get   ('/badger/groups',             [BadgerGroupController::class, 'index']);
-        Route::post  ('/badger/groups',             [BadgerGroupController::class, 'store']);
-        Route::put   ('/badger/groups/{id}',        [BadgerGroupController::class, 'update']);
-        Route::patch ('/badger/groups/{id}/toggle', [BadgerGroupController::class, 'toggle']);
-        Route::delete('/badger/groups/{id}',        [BadgerGroupController::class, 'destroy']);
+        Route::get   ('/ledger/groups',             [LedgerGroupController::class, 'index']);
+        Route::post  ('/ledger/groups',             [LedgerGroupController::class, 'store']);
+        Route::put   ('/ledger/groups/{id}',        [LedgerGroupController::class, 'update']);
+        Route::patch ('/ledger/groups/{id}/toggle', [LedgerGroupController::class, 'toggle']);
+        Route::delete('/ledger/groups/{id}',        [LedgerGroupController::class, 'destroy']);
 
         // ── Month Totals ──────────────────────────────────────────────
-        Route::get('/badger/month-totals', [BadgerMonthTotalsController::class, 'index']);
+        Route::get('/ledger/month-totals', [LedgerMonthTotalsController::class, 'index']);
     // });
 });
 
@@ -143,7 +149,7 @@ Route::prefix('stuffer')->middleware('auth.jwt')->group(function () {
     Route::post  ('expenses',           [StufferExpenseController::class, 'store']);
     Route::delete('expenses/{id}',      [StufferExpenseController::class, 'destroy']);
 
-    // ── Категории — используем общий Badger контроллер ────────────
-    // GET /badger/categories уже существует и возвращает bud_categories
+    // ── Категории — используем общий Ledger контроллер ────────────
+    // GET /ledger/categories уже существует и возвращает led_categories
     // Stuffer просто читает те же данные — отдельного роута не нужно
 });

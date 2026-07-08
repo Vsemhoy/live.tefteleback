@@ -99,6 +99,7 @@ return new class extends Migration
             $table->char('section_id', 26)->index()->nullable();
             $table->char('category_id', 26)->index()->nullable();
             $table->char('project_id', 26)->index()->nullable();
+            $table->char('exploiter_event_id', 26)->index()->nullable();
             $table->string('location', 50)->nullable(); // GPS
             $table->string('client', 120)->nullable(); // Who posted client info
             $table->text('content')->nullable(); // md text or something else

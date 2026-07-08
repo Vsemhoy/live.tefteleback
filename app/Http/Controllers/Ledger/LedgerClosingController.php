@@ -1,17 +1,17 @@
 <?php
 
-namespace App\Http\Controllers\Badger;
+namespace App\Http\Controllers\Ledger;
 
 use App\Http\Controllers\Controller;
-use App\Models\BudMonthTotal;
-use App\Models\BudTransaction;
-use App\Services\BadgerBalanceService;
+use App\Models\LedMonthTotal;
+use App\Models\LedTransaction;
+use App\Services\LedgerBalanceService;
 use Carbon\Carbon;
 
-class BadgerClosingController extends Controller
+class LedgerClosingController extends Controller
 {
     public function __construct(
-        private BadgerBalanceService $balanceService
+        private LedgerBalanceService $balanceService
     ) {}
 
     public function recalcFromMonth(string $userId, string $accountId, string $fromMonthKey): void
@@ -27,13 +27,13 @@ class BadgerClosingController extends Controller
     {
         // Кандидаты на конечный месяц:
         // 1. Последний месяц с транзакциями
-        $lastTxMonth = BudTransaction::where('account_id', $accountId)
+        $lastTxMonth = LedTransaction::where('account_id', $accountId)
             ->whereNull('deleted_at')
             ->max('month_key');
 
         // 2. Последний уже существующий тотал — он тоже должен пересчитаться
         //    т.к. его opening мог устареть из-за изменений в предыдущих месяцах
-        $lastTotalMonth = BudMonthTotal::where('account_id', $accountId)
+        $lastTotalMonth = LedMonthTotal::where('account_id', $accountId)
             ->max('month_key');
 
         // 3. Текущий месяц — минимальная граница

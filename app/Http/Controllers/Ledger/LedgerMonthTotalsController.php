@@ -1,19 +1,19 @@
 <?php
 
-namespace App\Http\Controllers\Badger;
+namespace App\Http\Controllers\Ledger;
 
 use App\Http\Controllers\Controller;
-use App\Models\BudLayer;
-use App\Models\BudMonthTotal;
-use App\Models\BudTransaction;
-use App\Services\BadgerBalanceService;
+use App\Models\LedLayer;
+use App\Models\LedMonthTotal;
+use App\Models\LedTransaction;
+use App\Services\LedgerBalanceService;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 
-class BadgerMonthTotalsController extends Controller
+class LedgerMonthTotalsController extends Controller
 {
     public function __construct(
-        private BadgerBalanceService $balanceService
+        private LedgerBalanceService $balanceService
     ) {}
 
     public function index(Request $request)
@@ -40,7 +40,7 @@ class BadgerMonthTotalsController extends Controller
                 }
         }
 
-        $query = BudMonthTotal::where('user_id', $user->id);
+        $query = LedMonthTotal::where('user_id', $user->id);
 
         if ($start && $end) {
             $query->whereBetween('month_key', [$start, $end]);
@@ -61,7 +61,7 @@ class BadgerMonthTotalsController extends Controller
     // ─── fillGapsUntil ────────────────────────────────────────────────
     private function fillGapsUntil(string $userId, string $accountId, string $targetMonth): void
     {
-        $lastCalculated = BudMonthTotal::where('account_id', $accountId)
+        $lastCalculated = LedMonthTotal::where('account_id', $accountId)
             ->where('is_dirty', 0)
             ->orderBy('month_key', 'desc')
             ->value('month_key');
@@ -72,7 +72,7 @@ class BadgerMonthTotalsController extends Controller
             $fromMonth = Carbon::createFromFormat('Y-m', $lastCalculated)
                 ->addMonth()->format('Y-m');
         } else {
-            $earliestTx = BudTransaction::where('account_id', $accountId)
+            $earliestTx = LedTransaction::where('account_id', $accountId)
                 ->whereNull('deleted_at')
                 ->orderBy('occurred_at')
                 ->value('month_key');

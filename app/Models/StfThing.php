@@ -31,10 +31,14 @@ class StfThing extends Model
         'open_count',
         'last_opened_at',
         'is_archived',
+        'track_location',
+        'track_lifecycle',
     ];
 
     protected $casts = [
         'is_archived' => 'boolean',
+        'track_location' => 'boolean',
+        'track_lifecycle' => 'boolean',
         'purchase_date' => 'date',
         'last_opened_at' => 'datetime',
         'purchase_price' => 'integer',
@@ -59,7 +63,7 @@ class StfThing extends Model
 
     public function category()
     {
-        return $this->belongsTo(BudCategory::class, 'category_id');
+        return $this->belongsTo(LedCategory::class, 'category_id');
     }
 
     public function register()
@@ -72,6 +76,22 @@ class StfThing extends Model
     public function expenses()
     {
         return $this->hasMany(StfExpense::class, 'thing_id');
+    }
+
+    public function contentBlocks()
+    {
+        return $this->hasMany(CntContent::class, 'source_id')
+            ->where('source_module', 'stuffer.thing')
+            ->orderBy('sort_order');
+    }
+
+    public function primaryContent()
+    {
+        return $this->hasOne(CntContent::class, 'source_id')
+            ->where('source_module', 'stuffer.thing')
+            ->where('field', 'content')
+            ->where('kind', 'markdown')
+            ->where('is_primary', true);
     }
 
     public function recordOpen(): void

@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Auth;
 
 use App\Http\Controllers\Controller;
-use App\Models\BudLayer;
+use App\Models\LedLayer;
 use App\Models\RefreshToken;
 use App\Models\User;
 use Firebase\JWT\JWT;
@@ -273,7 +273,7 @@ class AuthController extends Controller
         $user->save();
 
         // Create base layer for the user (TЗ 6. Seeder — base layer при регистрации)
-        BudLayer::create([
+        LedLayer::create([
             'id' => Str::ulid(),
             'user_id' => $user->id,
             'name' => 'Base',

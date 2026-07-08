@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('bud_transaction_groups', function (Blueprint $table) {
+        Schema::create('led_transaction_groups', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->ulid('user_id')->index();
             $table->string('name', 100);
@@ -26,6 +26,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('bud_transaction_groups');
+        Schema::dropIfExists('led_transaction_groups');
     }
 };

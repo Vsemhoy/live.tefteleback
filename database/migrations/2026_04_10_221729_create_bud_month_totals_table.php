@@ -11,7 +11,7 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('bud_month_totals', function (Blueprint $table) {
+        Schema::create('led_month_totals', function (Blueprint $table) {
             $table->ulid('id')->primary();
             $table->ulid('user_id')->index();
             $table->ulid('layer_id')->nullable();
@@ -39,6 +39,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('bud_month_totals');
+        Schema::dropIfExists('led_month_totals');
     }
 };

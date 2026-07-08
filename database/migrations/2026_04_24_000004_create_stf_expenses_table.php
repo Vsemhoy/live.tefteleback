@@ -19,8 +19,8 @@ return new class extends Migration
             // Например: bought → register(bought) + expense(сумма)
             $table->ulid('register_id')->nullable();
 
-            // ── Опциональная ссылка на транзакцию Badger ─────────────
-            // Null если расход записан вручную без Badger-транзакции
+            // ── Опциональная ссылка на транзакцию Ledger ─────────────
+            // Null если расход записан вручную без Ledger-транзакции
             $table->ulid('transaction_id')->nullable()->index();
 
             // ── Сумма (если нет транзакции — пишем вручную) ──────────
@@ -38,7 +38,7 @@ return new class extends Migration
                   ->nullOnDelete();
 
             // transaction_id — намеренно без FK constraint:
-            // bud_transactions в другой логической группе таблиц,
+            // led_transactions в другой логической группе таблиц,
             // soft delete там не совпадает по механике.
             // Целостность проверяем на уровне приложения.
         });

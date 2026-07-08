@@ -1,14 +1,14 @@
-# Badger — Codebase Map
+# Ledger — Codebase Map
 
 > Модуль бюджета и личных финансов.
 > Идеология: не бухгалтерия, а **симулятор финансовой реальности** для обычного человека.
-> Роут: `/badger/*`
+> Роут: `/Ledger/*`
 
 ---
 
 ## Идеология (читать обязательно)
 
-**Badger — не учёт расходов.** Это инструмент ответа на вопрос:
+**Ledger — не учёт расходов.** Это инструмент ответа на вопрос:
 > "Сколько у меня денег в конкретный день — сегодня, вчера, через месяц?"
 
 Ключевые принципы:
@@ -33,7 +33,7 @@ $29.99   →  2 999
 23.5%    →  2 350     (ставка * 100)
 ```
 
-Конвертация — **только в UI**, через `badgerUtils.js`:
+Конвертация — **только в UI**, через `LedgerUtils.js`:
 
 ```js
 export const toMinor      = (amount)   => Math.round(amount * 100)
@@ -76,20 +76,20 @@ fork    → ветка "что если" (snapshot + свои изменения
 
 ```
 balance(2026-03-15) =
-  closing_balance(2026-02)        ← из bud_month_totals (кэш)
+  closing_balance(2026-02)        ← из Led_month_totals (кэш)
   + delta(2026-03-01..2026-03-15) ← реальные транзакции
   + Σ interest(каждый день)       ← виртуальное, только на фронте
 ```
 
 **Три режима расчёта:** операционный (таблица дня), агрегатный (графики по month_totals), аудитный (полный пересчёт по кнопке).
 
-**Пересчёт month_totals** — через `BadgerClosingController::recalcFromMonth()`. Вызывается после каждой мутации транзакции. Считает от затронутого месяца вперёд до текущего.
+**Пересчёт month_totals** — через `LedgerClosingController::recalcFromMonth()`. Вызывается после каждой мутации транзакции. Считает от затронутого месяца вперёд до текущего.
 
 ---
 
 ## Схема БД (MySQL, Laravel migrations)
 
-### bud_layers
+### Led_layers
 ```sql
 id           CHAR(26) PK  -- ULID
 user_id      CHAR(26)
@@ -101,7 +101,7 @@ created_at   TIMESTAMP
 updated_at   TIMESTAMP
 ```
 
-### bud_accounts
+### Led_accounts
 ```sql
 id               CHAR(26) PK
 user_id          CHAR(26)
@@ -122,7 +122,7 @@ created_at       TIMESTAMP
 updated_at       TIMESTAMP
 ```
 
-### bud_transaction_groups
+### Led_transaction_groups
 ```sql
 id           CHAR(26) PK
 user_id      CHAR(26)
@@ -133,7 +133,7 @@ created_at   TIMESTAMP
 updated_at   TIMESTAMP
 ```
 
-### bud_transactions
+### Led_transactions
 ```sql
 id                       CHAR(26) PK
 user_id                  CHAR(26)
@@ -165,7 +165,7 @@ updated_at   TIMESTAMP
 deleted_at   TIMESTAMP NULL            -- soft delete
 ```
 
-### bud_month_totals
+### Led_month_totals
 ```sql
 id                  CHAR(26) PK
 user_id             CHAR(26)
@@ -190,7 +190,7 @@ UNIQUE KEY (layer_id, account_id, month_key)
 
 **Ключевые индексы:**
 ```sql
-bud_transactions: (account_id, month_key), (occurred_at), (group_id), (layer_id)
+Led_transactions: (account_id, month_key), (occurred_at), (group_id), (layer_id)
 ```
 
 ---
@@ -214,7 +214,7 @@ bud_transactions: (account_id, month_key), (occurred_at), (group_id), (layer_id)
 
 ## Объекты данных (API → фронт)
 
-Все ответы бэка оборачиваются в `{ status: 1, content: [...] }`. В `badgerApi.js` используется хелпер `unwrap` который автоматически извлекает `content`:
+Все ответы бэка оборачиваются в `{ status: 1, content: [...] }`. В `LedgerApi.js` используется хелпер `unwrap` который автоматически извлекает `content`:
 
 ```js
 const unwrap = (r) => r.data?.content ?? r.data ?? [];
@@ -265,13 +265,13 @@ const unwrap = (r) => r.data?.content ?? r.data ?? [];
 ## Структура модуля (фронт)
 
 ```
-modules/badger/
-├── api/badgerApi.js
+modules/Ledger/
+├── api/LedgerApi.js
 │     unwrap хелпер — все ответы { status, content } → массив
-├── store/badgerStore.js
+├── store/LedgerStore.js
 │     editorOpen/editorParams, readerOpen/readerParams,
 │     managerOpen, activeAccounts[], activeCurrency, balanceMode
-├── utils/badgerUtils.js
+├── utils/LedgerUtils.js
 │     toMinor, toMajor, formatMoney,
 │     rateToInt, rateToFloat, rateToStr, calcDailyInterest,
 │     flowKindColor, flowKindSign
@@ -281,7 +281,7 @@ modules/badger/
 │   ├── TransactionReadModal/   # просмотр по двойному клику
 │   ├── AccountsSidenav/        # toggle колонок, украден у SectionsSidenav
 │   ├── AccountsManager/        # drawer: список DnD + форма с датами/ставкой
-│   └── Toolbar/BadgerToolbar.jsx
+│   └── Toolbar/LedgerToolbar.jsx
 └── views/
     └── TimelineView/           # ← ГЛАВНЫЙ ВИД (реализован)
 ```
@@ -341,7 +341,7 @@ modules/badger/
 
 ```js
 // Для каждого счёта:
-opening = prevMonthTotals.closing_balance  // из GET /badger/month-totals?month_key=prev
+opening = prevMonthTotals.closing_balance  // из GET /Ledger/month-totals?month_key=prev
 running = opening + Σ реальных транзакций(ASC)
 
 // Кредитный счёт: каждый день после interest_start:
@@ -360,7 +360,7 @@ if (date < opened_at || date > closed_at) → null (показывается "�
 
 ---
 
-## Стор (badgerStore.js)
+## Стор (LedgerStore.js)
 
 ```js
 {
@@ -389,7 +389,7 @@ if (date < opened_at || date > closed_at) → null (показывается "�
 
 ---
 
-## API хуки (badgerApi.js)
+## API хуки (LedgerApi.js)
 
 | Хук | Описание |
 |-----|---------|
@@ -436,12 +436,12 @@ if (date < opened_at || date > closed_at) → null (показывается "�
 ## Бэковые контроллеры
 
 ```
-app/Http/Controllers/Badger/
-├── BadgerAccountController.php      # CRUD счетов
-├── BadgerTransactionController.php  # CRUD + move, инжектит BadgerClosingController
-├── BadgerGroupController.php        # CRUD + toggle
-├── BadgerMonthTotalsController.php  # GET month-totals
-└── BadgerClosingController.php      # recalcFromMonth + getMonthsFrom (не роут)
+app/Http/Controllers/Ledger/
+├── LedgerAccountController.php      # CRUD счетов
+├── LedgerTransactionController.php  # CRUD + move, инжектит LedgerClosingController
+├── LedgerGroupController.php        # CRUD + toggle
+├── LedgerMonthTotalsController.php  # GET month-totals
+└── LedgerClosingController.php      # recalcFromMonth + getMonthsFrom (не роут)
 ```
 
 **Важно:** `recalcFromMonth` вызывается после каждой мутации транзакции — store/update/destroy/move. Вызов **за пределами** `DB::transaction` чтобы не откатил транзакцию при ошибке пересчёта.
@@ -452,7 +452,7 @@ app/Http/Controllers/Badger/
 
 | Грабля | Решение |
 |--------|---------|
-| Бэк отдаёт `{ status, content }` | `unwrap` хелпер в badgerApi.js — `r.data?.content ?? r.data ?? []` |
+| Бэк отдаёт `{ status, content }` | `unwrap` хелпер в LedgerApi.js — `r.data?.content ?? r.data ?? []` |
 | `Boolean(0)` | Бэк отдаёт флаги как `0/1` — всегда `Boolean()` перед использованием |
 | Перевод = 2 транзакции | Создаются атомарно в `DB::transaction`. Удалять только вместе |
 | DnD между месяцами | При move инвалидируются `is_dirty` на обоих месяцах |
@@ -474,10 +474,10 @@ app/Http/Controllers/Badger/
 - [x] MonthTotalsRow — closing/opening строки
 - [x] Кредитный счёт — ежедневное начисление процентов на фронте
 - [x] Reconciliation — сверка/коррекция со знаком
-- [ ] Подписки (bud_subscriptions) — хостинги, домены, телефон
+- [ ] Подписки (Led_subscriptions) — хостинги, домены, телефон
 - [ ] Поиск по транзакциям (SearchPanel)
 - [ ] MonthView — месячная таблица
 - [ ] StatsView — графики по month_totals
 - [ ] Связь с Eventor (linked_entity)
 - [ ] Слои / прогнозные сценарии (Этап 2+)
-- [ ] Миграция данных из старого Budger (okker_local)
+- [ ] Миграция данных из старого Ledger (okker_local)

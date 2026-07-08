@@ -82,6 +82,8 @@ class StufferThingController extends Controller
             'unit' => 'nullable|string|max:20',
             'purchase_price' => 'nullable|integer',
             'purchase_date' => 'nullable|date',
+            'track_location' => 'nullable|boolean',
+            'track_lifecycle' => 'nullable|boolean',
         ]);
 
         $thing = StfThing::create([
@@ -110,6 +112,8 @@ class StufferThingController extends Controller
             'unit' => 'nullable|string|max:20',
             'purchase_price' => 'nullable|integer',
             'purchase_date' => 'nullable|date',
+            'track_location' => 'nullable|boolean',
+            'track_lifecycle' => 'nullable|boolean',
         ]);
 
         $thing->update($data);

@@ -1,17 +1,17 @@
 <?php
 
-namespace App\Http\Controllers\Badger;
+namespace App\Http\Controllers\Ledger;
 
 use App\Http\Controllers\Controller;
-use App\Models\BudCategory;
-use App\Models\BudTransaction;
+use App\Models\LedCategory;
+use App\Models\LedTransaction;
 use Illuminate\Http\Request;
 
-class BadgerCategoryController extends Controller
+class LedgerCategoryController extends Controller
 {
     public function index(Request $request)
     {
-        $categories = BudCategory::where('user_id', $request->user()->id)
+        $categories = LedCategory::where('user_id', $request->user()->id)
             ->orderBy('path')
             ->get();
 
@@ -35,13 +35,13 @@ class BadgerCategoryController extends Controller
 
         $path = $id;
         if (!empty($data['parent_id'])) {
-            $parent = BudCategory::where('id', $data['parent_id'])
+            $parent = LedCategory::where('id', $data['parent_id'])
                                   ->where('user_id', $request->user()->id)
                                   ->firstOrFail();
             $path = $parent->path . '.' . $id;
         }
 
-        $category = BudCategory::create([
+        $category = LedCategory::create([
             'id'         => $id,
             'user_id'    => $request->user()->id,
             'parent_id'  => $data['parent_id'] ?? null,
@@ -56,7 +56,7 @@ class BadgerCategoryController extends Controller
 
     public function update(Request $request, string $id)
     {
-        $category = BudCategory::where('id', $id)
+        $category = LedCategory::where('id', $id)
                                 ->where('user_id', $request->user()->id)
                                 ->firstOrFail();
 
@@ -73,7 +73,7 @@ class BadgerCategoryController extends Controller
 
     public function destroy(Request $request, string $id)
     {
-        $category = BudCategory::where('id', $id)
+        $category = LedCategory::where('id', $id)
                                 ->where('user_id', $request->user()->id)
                                 ->firstOrFail();
 
@@ -81,7 +81,7 @@ class BadgerCategoryController extends Controller
             return response()->json(['message' => 'Remove child categories first'], 422);
         }
 
-        BudTransaction::where('category_id', $id)->update(['category_id' => null]);
+        LedTransaction::where('category_id', $id)->update(['category_id' => null]);
 
         $category->delete();
 
@@ -97,7 +97,7 @@ class BadgerCategoryController extends Controller
         ])['items'];
 
         foreach ($items as $item) {
-            BudCategory::where('id', $item['id'])
+            LedCategory::where('id', $item['id'])
                        ->where('user_id', $request->user()->id)
                        ->update(['sort_order' => $item['sort_order']]);
         }

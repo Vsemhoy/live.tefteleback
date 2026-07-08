@@ -6,9 +6,9 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Str;
 
-class BudAccount extends Model
+class LedAccount extends Model
 {
-    protected $table = 'bud_accounts';
+    protected $table = 'led_accounts';
 
     protected $fillable = [
         'user_id',
@@ -52,6 +52,6 @@ class BudAccount extends Model
 
     public function transactions(): HasMany
     {
-        return $this->hasMany(BudTransaction::class, 'account_id');
+        return $this->hasMany(LedTransaction::class, 'account_id');
     }
 }

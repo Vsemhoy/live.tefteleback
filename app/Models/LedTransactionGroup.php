@@ -5,16 +5,19 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
 
-class BudLayer extends Model
+class LedTransactionGroup extends Model
 {
-    protected $table = 'bud_layers';
+    protected $table = 'led_transaction_groups';
 
     protected $fillable = [
         'user_id',
         'name',
-        'type',
-        'parent_id',
-        'is_active',
+        'is_disabled',
+        'color',
+    ];
+
+    protected $casts = [
+        'is_disabled' => 'boolean',
     ];
 
     protected static function boot()
