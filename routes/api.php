@@ -16,6 +16,7 @@ use App\Http\Controllers\Ledger\LedgerTransactionController;
 use App\Http\Controllers\Ledger\LedgerCategoryController;
 use App\Http\Controllers\System\TemplateController;
 use App\Http\Controllers\Feed\FeedController;
+use App\Http\Controllers\Exploiter\ExploiterController;
 
 Route::post('/auth/login', [AuthController::class, 'login']);
 
@@ -58,6 +59,14 @@ Route::middleware('auth.jwt')->group(function () {
 
 
     Route::get('/feed', [FeedController::class, 'index']);
+
+    Route::get('/exploiter/things', [ExploiterController::class, 'things']);
+    Route::get('/exploiter/events', [ExploiterController::class, 'index']);
+    Route::post('/exploiter/events', [ExploiterController::class, 'store']);
+    Route::get('/exploiter/events/{id}', [ExploiterController::class, 'show']);
+    Route::put('/exploiter/events/{id}', [ExploiterController::class, 'update']);
+    Route::delete('/exploiter/events/{id}', [ExploiterController::class, 'destroy']);
+    Route::post('/exploiter/events/{id}/pin', [ExploiterController::class, 'togglePin']);
 
     Route::post('/eventor/getmyevents', [EventorApiController::class, 'getMyEventsAction']);
     Route::post('/eventor/getpinned ', [EventorApiController::class, 'getMyPinnedAction']);

@@ -101,12 +101,15 @@ class StufferThingController extends Controller
         $thing = StfThing::where('user_id', Auth::id())->findOrFail($id);
 
         $data = $request->validate([
+            'entity_type' => 'sometimes|in:asset,item',
             'name' => 'sometimes|string|max:200',
             'description' => 'nullable|string',
             'vendor' => 'nullable|string|max:200',
             'url' => 'nullable|string',
             'parent_id' => 'nullable|string|max:26',
             'category_id' => 'nullable|string|max:26',
+            'current_location_id' => 'nullable|string|max:26',
+            'current_status' => 'nullable|string',
             'serial_no' => 'nullable|string|max:100',
             'qty' => 'nullable|numeric',
             'unit' => 'nullable|string|max:20',
