@@ -45,7 +45,7 @@ class EvtEvent extends Model
         'parent_id',
         'relation_type',
 
-        'setdate',
+        'occurred_at',
 
     ];
 

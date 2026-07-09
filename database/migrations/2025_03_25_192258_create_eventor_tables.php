@@ -118,7 +118,7 @@ return new class extends Migration
             $table->boolean('is_blurred')->default(false);
             $table->boolean('is_locked')->default(false);
             $table->boolean('is_pinned')->default(false);
-            $table->datetime('setdate')->nullable()->useCurrent(); // Date when we place this event on the calendar
+            $table->datetime('occurred_at')->nullable()->useCurrent(); // Date when we place this event on the calendar
             $table->timestamps();
 
 
@@ -129,16 +129,16 @@ return new class extends Migration
             $table->index('status');
             $table->index(['user_id', 'status']);
             $table->index(['root_id', 'created_at']);
-            $table->index('setdate');
+            $table->index('occurred_at');
 
             // Для ленты: посты в секции
-            $table->index(['section_id', 'status', 'setdate']);
+            $table->index(['section_id', 'status', 'occurred_at']);
 
             // Для ветки: все ответы на пост
-            $table->index(['root_id', 'setdate']);
+            $table->index(['root_id', 'occurred_at']);
 
             // Для профиля: посты пользователя с сортировкой
-            $table->index(['user_id', 'setdate']);
+            $table->index(['user_id', 'occurred_at']);
 
             // Для комментариев: кто может комментировать
             $table->index('comment_access');

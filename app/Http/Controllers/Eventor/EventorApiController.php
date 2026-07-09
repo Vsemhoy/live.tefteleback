@@ -50,14 +50,14 @@ class EventorApiController extends Controller
 
         $query = EvtEvent::with([
             'evt_type',
-            'parent:id,name,setdate',
-            'children:id,name,parent_id,setdate',
+            'parent:id,name,occurred_at',
+            'children:id,name,parent_id,occurred_at',
             'section:id,name,color,bgcolor,icon',
             'primaryContent',
             'tags',
         ])
             ->where('user_id', $user->id)
-            ->whereBetween('setdate', [$start, $end]);
+            ->whereBetween('occurred_at', [$start, $end]);
 
         // sections filter
         if (! empty($params['sections']) && is_array($params['sections'])) {
@@ -85,7 +85,7 @@ class EventorApiController extends Controller
             }
         }
 
-        $events = $query->orderBy('setdate', 'DESC')->get();
+        $events = $query->orderBy('occurred_at', 'DESC')->get();
 
         return response()->json([
             'status' => 1,
@@ -109,8 +109,8 @@ class EventorApiController extends Controller
 
         $query = EvtEvent::with([
             'evt_type',
-            'parent:id,name,setdate',
-            'children:id,name,parent_id,setdate',
+            'parent:id,name,occurred_at',
+            'children:id,name,parent_id,occurred_at',
             'section:id,name,color,bgcolor,icon',
             'primaryContent',
             'tags',
@@ -118,7 +118,7 @@ class EventorApiController extends Controller
             ->where('user_id', $user->id)
             ->where('is_pinned', 1);
 
-        $events = $query->orderBy('setdate', 'DESC')->orderBy('sort_order', 'DESC')->get();
+        $events = $query->orderBy('occurred_at', 'DESC')->orderBy('sort_order', 'DESC')->get();
 
         return response()->json([
             'status' => 1,
@@ -141,8 +141,8 @@ class EventorApiController extends Controller
 
         // Строим запрос
         $query = EvtEvent::with([
-            'parent:id,name,setdate',
-            'children:id,name,parent_id,setdate',
+            'parent:id,name,occurred_at',
+            'children:id,name,parent_id,occurred_at',
             'primaryContent',
         ])->where('user_id', $user->id)->where('id', $id)->first();
 
@@ -156,8 +156,8 @@ class EventorApiController extends Controller
     public function getEventPublicAction(Request $request, $id): JsonResponse
     {
         $event = EvtEvent::with([
-            'parent:id,name,setdate',
-            'children:id,name,parent_id,setdate',
+            'parent:id,name,occurred_at',
+            'children:id,name,parent_id,occurred_at',
             'user:id,name',
             'type',
             'section:id,name,color,bgcolor,icon',
@@ -292,7 +292,7 @@ class EventorApiController extends Controller
     //         'format' => 'sometimes|integer|between:1,3', // 1-md, 2-text, 3-code
     //         'status' => 'sometimes|integer|between:1,3', // 1-published, 2-archived
     //         'access' => 'sometimes|integer|between:0,4',
-    //         'setdate' => 'sometimes|date',
+    //         'occurred_at' => 'sometimes|date',
     //     ];
 
     //     $messages = [
@@ -322,7 +322,7 @@ class EventorApiController extends Controller
     //             'format' =>     $validated['format'] ?? 1,
     //             'status' =>     $validated['status'] ?? 2, // default: published
     //             'access' =>     $validated['access'] ?? 1,
-    //             'setdate' =>    $validated['setdate'] ?? now(),
+    //             'occurred_at' =>    $validated['occurred_at'] ?? now(),
     //         ];
 
     //         // Добавляем только существующие опциональные поля
@@ -387,7 +387,7 @@ class EventorApiController extends Controller
             'is_blurred' => 'nullable|boolean',
             'tag_ids' => 'nullable|array',
             'tag_ids.*' => 'string|max:26|exists:evt_tags,id',
-            'setdate' => 'nullable|date',
+            'occurred_at' => 'nullable|date',
         ];
 
         $messages = [
@@ -426,7 +426,7 @@ class EventorApiController extends Controller
                 'is_locked',
                 'is_pinned',
                 'is_blurred',
-                'setdate',
+                'occurred_at',
                 'parent_id',
                 'access',
             ];
@@ -441,7 +441,7 @@ class EventorApiController extends Controller
                     'format' => $validated['format'] ?? 1,
                     'status' => $validated['status'] ?? 2,
                     'access' => 1,
-                    'setdate' => $validated['setdate'] ?? now(),
+                    'occurred_at' => $validated['occurred_at'] ?? now(),
                     'parent_id' => $validated['parent_id'] ?? null,
                 ];
 
@@ -624,7 +624,7 @@ class EventorApiController extends Controller
             'is_blurred' => 'nullable|boolean',
             'tag_ids' => 'nullable|array',
             'tag_ids.*' => 'string|max:26|exists:evt_tags,id',
-            'setdate' => 'nullable|date',
+            'occurred_at' => 'nullable|date',
             
         ];
 
@@ -660,7 +660,7 @@ class EventorApiController extends Controller
             'is_locked',
             'is_pinned',
             'is_blurred',
-            'setdate',
+            'occurred_at',
             'parent_id',
             'access',
         ];
@@ -1048,11 +1048,11 @@ class EventorApiController extends Controller
         }
 
         if (isset($params['date_from']) && $params['date_from']) {
-            $query->whereDate('setdate', '>=', Carbon::parse($params['date_from'])->startOfDay());
+            $query->whereDate('occurred_at', '>=', Carbon::parse($params['date_from'])->startOfDay());
         }
 
         if (isset($params['date_to']) && $params['date_to']) {
-            $query->whereDate('setdate', '<=', Carbon::parse($params['date_to'])->endOfDay());
+            $query->whereDate('occurred_at', '<=', Carbon::parse($params['date_to'])->endOfDay());
         }
 
         $page = isset($params['page']) ? (int) $params['page'] : 1;
@@ -1061,7 +1061,7 @@ class EventorApiController extends Controller
         $total = $query->count();
         $events = $query->skip(($page - 1) * $perPage)
             ->take($perPage)
-            ->orderBy('setdate', 'DESC')
+            ->orderBy('occurred_at', 'DESC')
             ->get();
 
         $lastPage = (int) ceil($total / $perPage);

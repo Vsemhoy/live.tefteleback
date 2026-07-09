@@ -44,7 +44,7 @@ public function getMyEventsAction(Request $request): JsonResponse
     }
 
     $query = EvtEvent::where('user_id', $user->id)
-        ->whereBetween('setdate', [$start, $end]);
+        ->whereBetween('occurred_at', [$start, $end]);
 
     // sections filter
     if (!empty($params['sections']) && is_array($params['sections'])) {
@@ -72,7 +72,7 @@ public function getMyEventsAction(Request $request): JsonResponse
         }
     }
 
-    $events = $query->orderBy('setdate', 'DESC')->get();
+    $events = $query->orderBy('occurred_at', 'DESC')->get();
 
     return response()->json([
         'status' => 1,
@@ -207,7 +207,7 @@ public function getMyEventsAction(Request $request): JsonResponse
     //         'format' => 'sometimes|integer|between:1,3', // 1-md, 2-text, 3-code
     //         'status' => 'sometimes|integer|between:1,3', // 1-published, 2-archived
     //         'access' => 'sometimes|integer|between:0,4',
-    //         'setdate' => 'sometimes|date',
+    //         'occurred_at' => 'sometimes|date',
     //     ];
 
     //     $messages = [
@@ -237,7 +237,7 @@ public function getMyEventsAction(Request $request): JsonResponse
     //             'format' =>     $validated['format'] ?? 1,
     //             'status' =>     $validated['status'] ?? 2, // default: published
     //             'access' =>     $validated['access'] ?? 1,
-    //             'setdate' =>    $validated['setdate'] ?? now(),
+    //             'occurred_at' =>    $validated['occurred_at'] ?? now(),
     //         ];
 
     //         // Добавляем только существующие опциональные поля
@@ -296,7 +296,7 @@ public function saveEventAction(Request $request): JsonResponse
         'format' => 'nullable|integer|between:1,3',
         'status' => 'nullable|integer|between:1,3',
         'access' => 'nullable|integer|between:0,4',
-        'setdate' => 'nullable|date',
+        'occurred_at' => 'nullable|date',
     ];
 
     $messages = [
@@ -332,7 +332,7 @@ public function saveEventAction(Request $request): JsonResponse
             'format',
             'status',
             'access',
-            'setdate',
+            'occurred_at',
         ];
 
         if (!$eventId) {
@@ -345,7 +345,7 @@ public function saveEventAction(Request $request): JsonResponse
                 'format' => $validated['format'] ?? 1,
                 'status' => $validated['status'] ?? 2,
                 'access' => $validated['access'] ?? 1,
-                'setdate' => $validated['setdate'] ?? now(),
+                'occurred_at' => $validated['occurred_at'] ?? now(),
             ];
 
             foreach ($fillableFields as $field) {

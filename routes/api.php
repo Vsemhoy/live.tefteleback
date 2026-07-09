@@ -15,6 +15,7 @@ use App\Http\Controllers\Ledger\LedgerMonthTotalsController;
 use App\Http\Controllers\Ledger\LedgerTransactionController;
 use App\Http\Controllers\Ledger\LedgerCategoryController;
 use App\Http\Controllers\System\TemplateController;
+use App\Http\Controllers\Feed\FeedController;
 
 Route::post('/auth/login', [AuthController::class, 'login']);
 
@@ -56,6 +57,7 @@ Route::get('/opn/eventor/e/{id}', [EventorApiController::class, 'getEventPublicA
 Route::middleware('auth.jwt')->group(function () {
 
 
+    Route::get('/feed', [FeedController::class, 'index']);
 
     Route::post('/eventor/getmyevents', [EventorApiController::class, 'getMyEventsAction']);
     Route::post('/eventor/getpinned ', [EventorApiController::class, 'getMyPinnedAction']);
