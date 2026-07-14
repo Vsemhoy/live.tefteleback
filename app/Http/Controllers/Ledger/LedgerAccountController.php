@@ -62,6 +62,11 @@ class LedgerAccountController extends Controller
             'interest_start'  => 'nullable|date',
         ]);
 
+        $data['name'] = trim($data['name']);
+        if ($data['name'] === '') {
+            return response()->json(['message' => 'Account name is required'], 422);
+        }
+
         $layer = LedLayer::where('user_id', $user->id)
             ->where('type', 'base')
             ->firstOrFail();
@@ -96,6 +101,13 @@ class LedgerAccountController extends Controller
             'interest_rate'   => 'nullable|integer',
             'interest_start'  => 'nullable|date',
         ]);
+
+        if (array_key_exists('name', $data)) {
+            $data['name'] = trim((string) $data['name']);
+            if ($data['name'] === '') {
+                return response()->json(['message' => 'Account name is required'], 422);
+            }
+        }
 
         // Защита: не менять ставку если уже есть транзакции
         $hasTx = LedTransaction::where('account_id', $id)

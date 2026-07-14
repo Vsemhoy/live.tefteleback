@@ -15,9 +15,9 @@ class LedgerTransactionController extends Controller
         private LedgerClosingController $closing
     ) {}
 
-    // ─── Хелпер: найти парную транзакцию перевода ────────────────────
-    // Для transfer_out: парная = transfer_in с original_transaction_id = $tx->id
-    // Для transfer_in:  парная = transfer_out с id = $tx->original_transaction_id
+    // â”€â”€â”€ Ð¥ÐµÐ»Ð¿ÐµÑ€: Ð½Ð°Ð¹Ñ‚Ð¸ Ð¿Ð°Ñ€Ð½ÑƒÑŽ Ñ‚Ñ€Ð°Ð½Ð·Ð°ÐºÑ†Ð¸ÑŽ Ð¿ÐµÑ€ÐµÐ²Ð¾Ð´Ð° â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+    // Ð”Ð»Ñ transfer_out: Ð¿Ð°Ñ€Ð½Ð°Ñ = transfer_in Ñ original_transaction_id = $tx->id
+    // Ð”Ð»Ñ transfer_in:  Ð¿Ð°Ñ€Ð½Ð°Ñ = transfer_out Ñ id = $tx->original_transaction_id
     private function findPaired(LedTransaction $tx): ?LedTransaction
     {
         if ($tx->flow_kind === 'transfer_out') {
@@ -33,7 +33,7 @@ class LedgerTransactionController extends Controller
         return null;
     }
 
-    // ─── Хелпер: пересчитать счёт (и парный если есть) ──────────────
+    // â”€â”€â”€ Ð¥ÐµÐ»Ð¿ÐµÑ€: Ð¿ÐµÑ€ÐµÑÑ‡Ð¸Ñ‚Ð°Ñ‚ÑŒ ÑÑ‡Ñ‘Ñ‚ (Ð¸ Ð¿Ð°Ñ€Ð½Ñ‹Ð¹ ÐµÑÐ»Ð¸ ÐµÑÑ‚ÑŒ) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     private function recalcWithPaired(string $userId, LedTransaction $tx, string $fromMonth, ?LedTransaction $paired = null): void
     {
         $this->closing->recalcFromMonth($userId, $tx->account_id, $fromMonth);
@@ -58,7 +58,7 @@ class LedgerTransactionController extends Controller
             'group_id'          => 'nullable|string',
             'category_id'       => 'nullable|string|size:26',
             'exploiter_event_id'=> 'nullable|string|size:26',
-            'cost_type'         => 'nullable|in:part,labor,delivery,other',
+            'cost_type'         => 'nullable|in:part,labor,consumption,service,delivery,other',
             'sort_order'        => 'nullable|integer',
         ]);
 
@@ -119,7 +119,7 @@ class LedgerTransactionController extends Controller
             'is_disabled' => 'nullable|boolean',
             'category_id' => 'nullable|string|max:26',
             'exploiter_event_id' => 'nullable|string|size:26',
-            'cost_type'   => 'nullable|in:part,labor,delivery,other',
+            'cost_type'   => 'nullable|in:part,labor,consumption,service,delivery,other',
             'sort_order'  => 'nullable|integer',
         ]);
 
@@ -135,7 +135,7 @@ class LedgerTransactionController extends Controller
         \Log::info('updated transaction', ['id' => $tx->id, 'category_id' => $tx->fresh()->category_id]);
         $newMonthKey = $tx->fresh()->month_key;
 
-        // Если изменилась сумма или дата — синхронизируем парную транзакцию
+        // Ð•ÑÐ»Ð¸ Ð¸Ð·Ð¼ÐµÐ½Ð¸Ð»Ð°ÑÑŒ ÑÑƒÐ¼Ð¼Ð° Ð¸Ð»Ð¸ Ð´Ð°Ñ‚Ð° â€” ÑÐ¸Ð½Ñ…Ñ€Ð¾Ð½Ð¸Ð·Ð¸Ñ€ÑƒÐµÐ¼ Ð¿Ð°Ñ€Ð½ÑƒÑŽ Ñ‚Ñ€Ð°Ð½Ð·Ð°ÐºÑ†Ð¸ÑŽ
         if ($paired) {
             $pairedUpdate = [];
             if (isset($data['amount']))      $pairedUpdate['amount']      = $data['amount'];
@@ -200,7 +200,7 @@ class LedgerTransactionController extends Controller
         }
         $tx->save();
 
-        // Синхронизируем дату парной транзакции
+        // Ð¡Ð¸Ð½Ñ…Ñ€Ð¾Ð½Ð¸Ð·Ð¸Ñ€ÑƒÐµÐ¼ Ð´Ð°Ñ‚Ñƒ Ð¿Ð°Ñ€Ð½Ð¾Ð¹ Ñ‚Ñ€Ð°Ð½Ð·Ð°ÐºÑ†Ð¸Ð¸
         if ($paired && ($data['occurred_at'] ?? null)) {
             $paired->occurred_at = $data['occurred_at'];
             $paired->month_key   = $tx->month_key;
@@ -255,7 +255,7 @@ class LedgerTransactionController extends Controller
             : !$tx->is_disabled;
         $tx->save();
 
-        // Синхронизируем парную транзакцию
+        // Ð¡Ð¸Ð½Ñ…Ñ€Ð¾Ð½Ð¸Ð·Ð¸Ñ€ÑƒÐµÐ¼ Ð¿Ð°Ñ€Ð½ÑƒÑŽ Ñ‚Ñ€Ð°Ð½Ð·Ð°ÐºÑ†Ð¸ÑŽ
         $paired = $this->findPaired($tx);
         if ($paired) {
             $paired->is_disabled = $tx->is_disabled;
@@ -270,3 +270,4 @@ class LedgerTransactionController extends Controller
         return response()->json(['status' => 1, 'content' => $tx->refresh()]);
     }
 }
+

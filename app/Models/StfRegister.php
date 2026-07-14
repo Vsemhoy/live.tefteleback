@@ -15,6 +15,7 @@ class StfRegister extends Model
         'user_id',
         'thing_id',
         'event_type',
+        'event_kind',
         'from_location_id',
         'to_location_id',
         'contact',
@@ -37,6 +38,7 @@ class StfRegister extends Model
         'return_expected' => 'date',
         'amount' => 'integer',
         'details' => 'array',
+        'event_kind' => 'string',
         'status' => 'integer',
         'priority' => 'integer',
         'is_pinned' => 'boolean',
@@ -116,3 +118,4 @@ class StfRegister extends Model
         };
     }
 }
+

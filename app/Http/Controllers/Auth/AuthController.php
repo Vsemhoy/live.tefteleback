@@ -53,6 +53,7 @@ class AuthController extends Controller
                 'name' => $user->name,
                 'email' => $user->email,
                 'avatar' => null,
+                'is_demo' => (bool) $user->is_demo,
             ],
             'message' => 'Login successful',
         ]);
@@ -128,6 +129,7 @@ class AuthController extends Controller
                 'id' => $user->id,
                 'name' => $user->name,
                 'email' => $user->email,
+                'is_demo' => (bool) $user->is_demo,
             ],
         ];
 
@@ -341,6 +343,13 @@ class AuthController extends Controller
 
             if (! $user) {
                 throw new \Exception('Пользователь не найден', 401);
+            }
+
+            if ($user->is_demo) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Demo users cannot change password',
+                ], 403);
             }
 
             Log::info('Change password request', [

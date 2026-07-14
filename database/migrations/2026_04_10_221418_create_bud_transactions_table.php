@@ -36,7 +36,7 @@ return new class extends Migration
             $table->integer('sort_order')->default(0);
 
             $table->ulid('exploiter_event_id')->nullable()->index();
-            $table->enum('cost_type', ['part', 'labor', 'delivery', 'other'])->nullable()->index();
+            $table->enum('cost_type', ['part', 'labor', 'consumption', 'service', 'delivery', 'other'])->nullable()->index();
 
             $table->string('linked_entity_type', 50)->nullable();
             $table->ulid('linked_entity_id')->nullable();
@@ -57,3 +57,4 @@ return new class extends Migration
         Schema::dropIfExists('led_transactions');
     }
 };
+

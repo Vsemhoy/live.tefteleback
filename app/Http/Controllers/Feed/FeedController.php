@@ -106,6 +106,7 @@ class FeedController extends Controller
         $query = DB::table('stf_register as r')
             ->leftJoin('stf_things as t', 't.id', '=', 'r.thing_id')
             ->where('r.user_id', $userId)
+            ->where('r.occurred_at', '<=', now())
             ->whereNotNull('r.status')
             ->selectRaw("
                 r.id,
@@ -148,6 +149,7 @@ class FeedController extends Controller
             ->leftJoin('led_accounts as a', 'a.id', '=', 'tx.account_id')
             ->leftJoin('led_categories as cat', 'cat.id', '=', 'tx.category_id')
             ->where('tx.user_id', $userId)
+            ->where('tx.occurred_at', '<=', now())
             ->where('tx.is_disabled', 0)
             ->whereNull('tx.deleted_at')
             ->selectRaw("
