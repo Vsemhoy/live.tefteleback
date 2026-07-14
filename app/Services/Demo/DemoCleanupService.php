@@ -50,6 +50,9 @@ class DemoCleanupService
             $deleted['sys_timer_entries'] = $this->deleteByUserWindow('sys_timer_entries', $userId, $baseline, $cutoff);
             $deleted['cnt_contents'] = $this->deleteByUserWindow('cnt_contents', $userId, $baseline, $cutoff);
             $deleted['sys_templates'] = $this->deleteByUserWindow('sys_templates', $userId, $baseline, $cutoff);
+            $deleted['ctr_contents'] = $this->deleteByUserWindow('ctr_contents', $userId, $baseline, $cutoff);
+            $deleted['ctr_relations'] = $this->deleteByUserWindow('ctr_relations', $userId, $baseline, $cutoff);
+            $deleted['ctr_contacts'] = $this->deleteByUserWindow('ctr_contacts', $userId, $baseline, $cutoff);
 
             $deleted['stf_expenses'] = $this->deleteByUserWindow('stf_expenses', $userId, $baseline, $cutoff);
             $deleted['stf_register'] = $this->deleteByIds('stf_register', $registerIds);

@@ -19,6 +19,7 @@ use App\Http\Controllers\Feed\FeedController;
 use App\Http\Controllers\Exploiter\ExploiterController;
 use App\Http\Controllers\Auth\DemoAuthController;
 use App\Http\Controllers\Demo\DemoMaintenanceController;
+use App\Http\Controllers\Contactor\ContactorController;
 
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/demo', [DemoAuthController::class, 'login']);
@@ -63,6 +64,21 @@ Route::middleware('auth.jwt')->group(function () {
 
 
     Route::get('/feed', [FeedController::class, 'index']);
+    Route::get('/contactor/contacts', [ContactorController::class, 'contacts']);
+    Route::post('/contactor/contacts', [ContactorController::class, 'storeContact']);
+    Route::get('/contactor/contacts/{id}', [ContactorController::class, 'showContact']);
+    Route::put('/contactor/contacts/{id}', [ContactorController::class, 'updateContact']);
+    Route::delete('/contactor/contacts/{id}', [ContactorController::class, 'destroyContact']);
+
+    Route::get('/contactor/contents', [ContactorController::class, 'contents']);
+    Route::post('/contactor/contents', [ContactorController::class, 'storeContent']);
+    Route::put('/contactor/contents/{id}', [ContactorController::class, 'updateContent']);
+    Route::delete('/contactor/contents/{id}', [ContactorController::class, 'destroyContent']);
+
+    Route::get('/contactor/relations', [ContactorController::class, 'relations']);
+    Route::post('/contactor/relations', [ContactorController::class, 'storeRelation']);
+    Route::put('/contactor/relations/{id}', [ContactorController::class, 'updateRelation']);
+    Route::delete('/contactor/relations/{id}', [ContactorController::class, 'destroyRelation']);
 
     Route::get('/exploiter/things', [ExploiterController::class, 'things']);
     Route::get('/exploiter/events', [ExploiterController::class, 'index']);
