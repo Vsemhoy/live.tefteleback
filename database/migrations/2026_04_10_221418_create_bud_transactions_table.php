@@ -46,6 +46,7 @@ return new class extends Migration
 
             $table->index(['account_id', 'month_key']);
             $table->index(['exploiter_event_id', 'cost_type', 'sort_order'], 'led_tx_exp_event_cost_sort_idx');
+            $table->index(['linked_entity_type', 'linked_entity_id', 'occurred_at'], 'led_transactions_linked_entity_idx');
         });
     }
 

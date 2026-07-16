@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Ledger;
 use App\Http\Controllers\Controller;
 use App\Models\LedLayer;
 use App\Models\LedTransaction;
+use App\Models\StfThing;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -14,6 +15,93 @@ class LedgerTransactionController extends Controller
     public function __construct(
         private LedgerClosingController $closing
     ) {}
+
+    private const LINKED_ENTITY_TYPES = [
+        'stuffer.thing',
+        'exploiter.event',
+        'eventor.event',
+        'contactor.contact',
+    ];
+
+    private function normalizeLinkedEntity(array $data): array
+    {
+        $hasLinkInput = array_key_exists('linked_entity_type', $data)
+            || array_key_exists('linked_entity_id', $data)
+            || array_key_exists('exploiter_event_id', $data);
+
+        if (! $hasLinkInput) {
+            return $data;
+        }
+
+        if (($data['linked_entity_type'] ?? null) === '') {
+            $data['linked_entity_type'] = null;
+        }
+        if (($data['linked_entity_id'] ?? null) === '') {
+            $data['linked_entity_id'] = null;
+        }
+        if (($data['linked_entity_type'] ?? null) === 'exploiter') {
+            $data['linked_entity_type'] = 'exploiter.event';
+        }
+        if (!empty($data['exploiter_event_id']) && empty($data['linked_entity_id'])) {
+            $data['linked_entity_type'] = 'exploiter.event';
+            $data['linked_entity_id'] = $data['exploiter_event_id'];
+        }
+        if (empty($data['linked_entity_type']) || empty($data['linked_entity_id'])) {
+            $data['linked_entity_type'] = null;
+            $data['linked_entity_id'] = null;
+        }
+        return $data;
+    }
+
+    private function attachLinkedEntity($transactions)
+    {
+        if ($transactions instanceof LedTransaction) {
+            $transactions->setAttribute('linked_entity', $this->linkedEntityPayload($transactions));
+            return $transactions;
+        }
+
+        return $transactions->map(function (LedTransaction $tx) {
+            $tx->setAttribute('linked_entity', $this->linkedEntityPayload($tx));
+            return $tx;
+        });
+    }
+
+    private function linkedEntityPayload(LedTransaction $tx): ?array
+    {
+        $type = $tx->linked_entity_type ?: ($tx->exploiter_event_id ? 'exploiter.event' : null);
+        $id = $tx->linked_entity_id ?: ($type === 'exploiter.event' ? $tx->exploiter_event_id : null);
+
+        if (!$type || !$id) {
+            return null;
+        }
+
+        if ($type === 'stuffer.thing') {
+            $thing = StfThing::where('user_id', $tx->user_id)->where('id', $id)->first(['id', 'name', 'entity_type']);
+            return [
+                'type' => $type,
+                'id' => $id,
+                'label' => $thing?->name ?? 'Thing',
+                'kind' => $thing?->entity_type,
+            ];
+        }
+
+        if ($type === 'exploiter.event') {
+            $event = $tx->relationLoaded('exploiterEvent') ? $tx->exploiterEvent : $tx->exploiterEvent()->first();
+            return [
+                'type' => $type,
+                'id' => $id,
+                'label' => $event?->name ?? 'Exploiter event',
+                'kind' => $event?->event_kind,
+            ];
+        }
+
+        return [
+            'type' => $type,
+            'id' => $id,
+            'label' => $type,
+            'kind' => null,
+        ];
+    }
 
     // â”€â”€â”€ Ð¥ÐµÐ»Ð¿ÐµÑ€: Ð½Ð°Ð¹Ñ‚Ð¸ Ð¿Ð°Ñ€Ð½ÑƒÑŽ Ñ‚Ñ€Ð°Ð½Ð·Ð°ÐºÑ†Ð¸ÑŽ Ð¿ÐµÑ€ÐµÐ²Ð¾Ð´Ð° â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
     // Ð”Ð»Ñ transfer_out: Ð¿Ð°Ñ€Ð½Ð°Ñ = transfer_in Ñ original_transaction_id = $tx->id
@@ -58,9 +146,14 @@ class LedgerTransactionController extends Controller
             'group_id'          => 'nullable|string',
             'category_id'       => 'nullable|string|size:26',
             'exploiter_event_id'=> 'nullable|string|size:26',
+            'linked_entity_type'=> 'nullable|in:stuffer.thing,exploiter.event,eventor.event,contactor.contact,exploiter',
+            'linked_entity_id'  => 'nullable|string|size:26',
             'cost_type'         => 'nullable|in:part,labor,consumption,service,delivery,other',
             'sort_order'        => 'nullable|integer',
         ]);
+
+        
+        $data = $this->normalizeLinkedEntity($data);
 
         \Log::info('store input', ['category_id' => $data['category_id'] ?? 'missing']);
 
@@ -119,9 +212,13 @@ class LedgerTransactionController extends Controller
             'is_disabled' => 'nullable|boolean',
             'category_id' => 'nullable|string|max:26',
             'exploiter_event_id' => 'nullable|string|size:26',
+            'linked_entity_type'=> 'nullable|in:stuffer.thing,exploiter.event,eventor.event,contactor.contact,exploiter',
+            'linked_entity_id'  => 'nullable|string|size:26',
             'cost_type'   => 'nullable|in:part,labor,consumption,service,delivery,other',
             'sort_order'  => 'nullable|integer',
         ]);
+
+        $data = $this->normalizeLinkedEntity($data);
 
         \Log::info('update called', ['id' => $id, 'category_id' => $data['category_id'] ?? 'missing']);
 
@@ -232,15 +329,19 @@ class LedgerTransactionController extends Controller
             $query->whereIn('account_id', explode(',', $request->get('account_id')));
         }
 
-        return response()->json(['status' => 1, 'content' => $query->with('category')->get()]);
+        return response()->json(['status' => 1, 'content' => $this->attachLinkedEntity($query->with(['category', 'exploiterEvent'])->get())]);
     }
 
     public function show(Request $request, string $id)
     {
+        $tx = LedTransaction::where('user_id', $request->user()->id)
+            ->where('id', $id)
+            ->with(['category', 'exploiterEvent'])
+            ->firstOrFail();
+
         return response()->json([
             'status'  => 1,
-            'content' => LedTransaction::where('user_id', $request->user()->id)
-                ->where('id', $id)->with(['category'])->firstOrFail(),
+            'content' => $this->attachLinkedEntity($tx),
         ]);
     }
 
