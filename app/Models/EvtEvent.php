@@ -39,6 +39,7 @@ class EvtEvent extends Model
         'comment_access',
         'is_locked',
         'is_pinned',
+        'is_expert',
         'is_blurred',
 
         'root_id',
@@ -47,6 +48,14 @@ class EvtEvent extends Model
 
         'occurred_at',
 
+    ];
+
+    protected $casts = [
+        'is_locked' => 'boolean',
+        'is_pinned' => 'boolean',
+        'is_expert' => 'boolean',
+        'is_blurred' => 'boolean',
+        'occurred_at' => 'datetime',
     ];
 
     public function user()

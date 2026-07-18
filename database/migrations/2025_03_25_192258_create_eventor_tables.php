@@ -118,6 +118,7 @@ return new class extends Migration
             $table->boolean('is_blurred')->default(false);
             $table->boolean('is_locked')->default(false);
             $table->boolean('is_pinned')->default(false);
+            $table->boolean('is_expert')->default(false)->index();
             $table->datetime('occurred_at')->nullable()->useCurrent(); // Date when we place this event on the calendar
             $table->timestamps();
 

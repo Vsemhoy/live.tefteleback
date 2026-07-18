@@ -7,34 +7,25 @@ use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
 
-class CtrContent extends Model
+class CtrDetail extends Model
 {
     use HasUlids, SoftDeletes;
 
-    protected $table = 'ctr_contents';
+    protected $table = 'ctr_details';
 
     protected $fillable = [
         'user_id',
         'contact_id',
         'kind',
-        'occurred_at',
-        'title',
-        'body_md',
-        'is_pinned',
-        'is_expert',
-        'eventor_event_id',
-        'stuffer_register_id',
-        'exploiter_event_id',
-        'meta',
+        'label',
+        'value',
         'sort_order',
+        'meta',
     ];
 
     protected $casts = [
-        'occurred_at' => 'datetime',
-        'is_pinned' => 'boolean',
-        'is_expert' => 'boolean',
-        'meta' => 'array',
         'sort_order' => 'integer',
+        'meta' => 'array',
     ];
 
     public function user(): BelongsTo

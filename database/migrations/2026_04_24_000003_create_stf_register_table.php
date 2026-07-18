@@ -52,6 +52,7 @@ return new class extends Migration
             $table->unsignedTinyInteger('status')->nullable()->index();
             $table->unsignedTinyInteger('priority')->nullable()->index();
             $table->boolean('is_pinned')->default(false)->index();
+            $table->boolean('is_expert')->default(false)->index();
             $table->integer('part_cost')->default(0);
             $table->integer('labor_cost')->default(0);
             $table->integer('time_self_min')->default(0);

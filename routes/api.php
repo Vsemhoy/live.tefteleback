@@ -74,6 +74,10 @@ Route::middleware('auth.jwt')->group(function () {
     Route::post('/contactor/contents', [ContactorController::class, 'storeContent']);
     Route::put('/contactor/contents/{id}', [ContactorController::class, 'updateContent']);
     Route::delete('/contactor/contents/{id}', [ContactorController::class, 'destroyContent']);
+    Route::get('/contactor/logs', [ContactorController::class, 'contents']);
+    Route::post('/contactor/logs', [ContactorController::class, 'storeContent']);
+    Route::put('/contactor/logs/{id}', [ContactorController::class, 'updateContent']);
+    Route::delete('/contactor/logs/{id}', [ContactorController::class, 'destroyContent']);
 
     Route::get('/contactor/relations', [ContactorController::class, 'relations']);
     Route::post('/contactor/relations', [ContactorController::class, 'storeRelation']);

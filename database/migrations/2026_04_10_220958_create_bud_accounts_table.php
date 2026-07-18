@@ -23,6 +23,7 @@ return new class extends Migration
             $table->string('color', 20)->nullable();
             $table->integer('sort_order')->default(0);
             $table->tinyInteger('is_archived')->default(0);
+            $table->boolean('is_expert')->default(false)->index();
             $table->timestamps();
         });
     }

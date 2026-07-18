@@ -33,6 +33,7 @@ return new class extends Migration
             $table->enum('status', ['cleared', 'pending'])->default('cleared');
             $table->tinyInteger('is_disabled')->default(0);
             $table->tinyInteger('is_pinned')->default(0);
+            $table->boolean('is_expert')->default(false)->index();
             $table->integer('sort_order')->default(0);
 
             $table->ulid('exploiter_event_id')->nullable()->index();

@@ -150,6 +150,7 @@ class LedgerTransactionController extends Controller
             'linked_entity_id'  => 'nullable|string|size:26',
             'cost_type'         => 'nullable|in:part,labor,consumption,service,delivery,other',
             'sort_order'        => 'nullable|integer',
+            'is_expert'         => 'nullable|boolean',
         ]);
 
         
@@ -186,6 +187,7 @@ class LedgerTransactionController extends Controller
                     'title'                   => $data['title'] ?? null,
                     'status'                  => $data['status'] ?? 'cleared',
                     'original_transaction_id' => $tx->id,
+                    'is_expert'               => (bool) ($data['is_expert'] ?? false),
                 ]);
             }
         });
@@ -216,6 +218,7 @@ class LedgerTransactionController extends Controller
             'linked_entity_id'  => 'nullable|string|size:26',
             'cost_type'   => 'nullable|in:part,labor,consumption,service,delivery,other',
             'sort_order'  => 'nullable|integer',
+            'is_expert'   => 'nullable|boolean',
         ]);
 
         $data = $this->normalizeLinkedEntity($data);
@@ -240,6 +243,7 @@ class LedgerTransactionController extends Controller
             if (isset($data['occurred_at'])) $pairedUpdate['month_key']   = Carbon::parse($data['occurred_at'])->format('Y-m');
             if (isset($data['title']))       $pairedUpdate['title']       = $data['title'];
             if (isset($data['status']))      $pairedUpdate['status']      = $data['status'];
+            if (isset($data['is_expert']))   $pairedUpdate['is_expert']   = $data['is_expert'];
             if (!empty($pairedUpdate))       $paired->update($pairedUpdate);
         }
 
@@ -322,6 +326,10 @@ class LedgerTransactionController extends Controller
         $query = LedTransaction::where('user_id', $user->id)
             ->whereNull('deleted_at')
             ->whereBetween('occurred_at', [$request->get('start'), $request->get('end')])
+            ->when(! $request->boolean('include_expert'), function ($query) {
+                $query->where('is_expert', false)
+                    ->whereHas('account', fn ($account) => $account->where('is_expert', false));
+            })
             ->orderBy('occurred_at', 'desc')
             ->orderBy('sort_order');
 

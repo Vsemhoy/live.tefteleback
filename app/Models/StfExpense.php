@@ -17,6 +17,7 @@ class StfExpense extends Model
         'register_id',
         'transaction_id',
         'amount',
+        'is_expert',
         'note',
         'occurred_at',
     ];
@@ -24,6 +25,7 @@ class StfExpense extends Model
     protected $casts = [
         'occurred_at' => 'date',
         'amount' => 'integer',
+        'is_expert' => 'boolean',
     ];
 
     public function thing()

@@ -14,6 +14,7 @@ class StufferThingController extends Controller
     {
         $query = StfThing::where('user_id', Auth::id())
             ->active()
+            ->when(! $request->boolean('include_expert'), fn ($query) => $query->where('is_expert', false))
             ->byRelevance()
             ->with(['location', 'category']);
 
@@ -84,12 +85,16 @@ class StufferThingController extends Controller
             'purchase_date' => 'nullable|date',
             'track_location' => 'nullable|boolean',
             'track_lifecycle' => 'nullable|boolean',
+            'visibility' => 'nullable|in:private,friends,registered,public',
+            'is_expert' => 'nullable|boolean',
         ]);
 
         $thing = StfThing::create([
             ...$data,
             'user_id' => Auth::id(),
             'current_status' => $data['current_status'] ?? 'active',
+            'visibility' => $data['visibility'] ?? 'private',
+            'is_expert' => (bool) ($data['is_expert'] ?? false),
         ]);
 
         return response()->json(['status' => 1, 'content' => $thing], 201);
@@ -117,6 +122,8 @@ class StufferThingController extends Controller
             'purchase_date' => 'nullable|date',
             'track_location' => 'nullable|boolean',
             'track_lifecycle' => 'nullable|boolean',
+            'visibility' => 'nullable|in:private,friends,registered,public',
+            'is_expert' => 'nullable|boolean',
         ]);
 
         $thing->update($data);

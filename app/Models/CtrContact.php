@@ -22,10 +22,14 @@ class CtrContact extends Model
         'role',
         'company',
         'avatar',
+        'avatar_url',
         'met_at',
+        'met_precision',
         'met_context',
         'last_contact_at',
         'details',
+        'is_pinned',
+        'sort_order',
         'is_archived',
     ];
 
@@ -33,6 +37,8 @@ class CtrContact extends Model
         'met_at' => 'date',
         'last_contact_at' => 'datetime',
         'details' => 'array',
+        'is_pinned' => 'boolean',
+        'sort_order' => 'integer',
         'is_archived' => 'boolean',
     ];
 
@@ -41,9 +47,17 @@ class CtrContact extends Model
         return $this->belongsTo(User::class);
     }
 
+    public function detailsRows(): HasMany
+    {
+        return $this->hasMany(CtrDetail::class, 'contact_id')
+            ->orderBy('sort_order')
+            ->orderBy('created_at');
+    }
+
     public function contents(): HasMany
     {
         return $this->hasMany(CtrContent::class, 'contact_id')
+            ->orderByDesc('is_pinned')
             ->orderByDesc('occurred_at')
             ->orderByDesc('created_at');
     }
@@ -63,3 +77,4 @@ class CtrContact extends Model
         return $query->where('is_archived', false);
     }
 }
+

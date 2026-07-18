@@ -15,6 +15,7 @@ class StufferRegisterController extends Controller
     public function index(Request $request)
     {
         $query = StfRegister::where('user_id', Auth::id())
+            ->when(! $request->boolean('include_expert'), fn ($query) => $query->where('is_expert', false))
             ->with(['thing', 'fromLocation', 'toLocation', 'expense', 'ledgerTransactions', 'timerEntries', 'eventorEvents'])
             ->orderByDesc('occurred_at')
             ->orderByDesc('created_at');
@@ -47,6 +48,7 @@ class StufferRegisterController extends Controller
             'status' => 'nullable|integer',
             'priority' => 'nullable|integer',
             'is_pinned' => 'nullable|boolean',
+            'is_expert' => 'nullable|boolean',
             'part_cost' => 'nullable|integer',
             'labor_cost' => 'nullable|integer',
             'time_self_min' => 'nullable|integer',
@@ -84,6 +86,7 @@ class StufferRegisterController extends Controller
                     'user_id' => Auth::id(),
                     'thing_id' => $thing->id,
                     'register_id' => $reg->id,
+                    'is_expert' => (bool) ($data['is_expert'] ?? false),
                     'amount' => $data['amount'],
                     'occurred_at' => $data['occurred_at'],
                 ]);

@@ -24,7 +24,8 @@ return new class extends Migration
             $table->ulid('transaction_id')->nullable()->index();
 
             // ── Сумма (если нет транзакции — пишем вручную) ──────────
-            $table->integer('amount')->nullable(); // минорные единицы
+            $table->integer('amount')->nullable();
+            $table->boolean('is_expert')->default(false)->index(); // минорные единицы
 
             $table->text('note')->nullable();
             $table->date('occurred_at');

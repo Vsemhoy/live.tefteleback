@@ -58,6 +58,8 @@ return new class extends Migration
             $table->boolean('is_archived')->default(false);
             $table->boolean('track_location')->default(true)->index();
             $table->boolean('track_lifecycle')->default(false)->index();
+            $table->string('visibility', 16)->default('private')->index();
+            $table->boolean('is_expert')->default(false)->index();
             $table->timestamps();
             $table->softDeletes();
 

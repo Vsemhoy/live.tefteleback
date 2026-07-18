@@ -32,6 +32,7 @@ class LedgerAccountController extends Controller
         $accounts = LedAccount::where('user_id', $user->id)
             ->where('layer_id', $layer->id)
             ->where('is_archived', 0)
+            ->when(! $request->boolean('include_expert'), fn ($query) => $query->where('is_expert', false))
             ->withCount(['transactions' => fn($q) => $q->whereNull('deleted_at')])
             ->orderBy('sort_order')
             ->get()
@@ -60,6 +61,7 @@ class LedgerAccountController extends Controller
             'closed_at'       => 'nullable|date',
             'interest_rate'   => 'nullable|integer',
             'interest_start'  => 'nullable|date',
+            'is_expert'      => 'nullable|boolean',
         ]);
 
         $data['name'] = trim($data['name']);
@@ -100,6 +102,7 @@ class LedgerAccountController extends Controller
             'closed_at'       => 'nullable|date',
             'interest_rate'   => 'nullable|integer',
             'interest_start'  => 'nullable|date',
+            'is_expert'      => 'nullable|boolean',
         ]);
 
         if (array_key_exists('name', $data)) {

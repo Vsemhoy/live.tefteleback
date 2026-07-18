@@ -57,6 +57,7 @@ class EventorApiController extends Controller
             'tags',
         ])
             ->where('user_id', $user->id)
+            ->when(! $request->boolean('include_expert'), fn ($query) => $query->where('is_expert', false))
             ->whereBetween('occurred_at', [$start, $end]);
 
         // sections filter
@@ -116,6 +117,7 @@ class EventorApiController extends Controller
             'tags',
         ])
             ->where('user_id', $user->id)
+            ->when(! $request->boolean('include_expert'), fn ($query) => $query->where('is_expert', false))
             ->where('is_pinned', 1);
 
         $events = $query->orderBy('occurred_at', 'DESC')->orderBy('sort_order', 'DESC')->get();
@@ -169,6 +171,11 @@ class EventorApiController extends Controller
 
         if (! $event) {
             return response()->json(['status' => 0, 'message' => 'Event not found'], 404);
+        }
+
+        $authUser = $this->tryGetUser($request);
+        if ($event->is_expert && (! $authUser || $authUser->id !== $event->user_id)) {
+            return response()->json(['status' => 0, 'message' => 'Access denied'], 403);
         }
 
         if ($event->access !== 3) {
@@ -384,6 +391,7 @@ class EventorApiController extends Controller
             'access' => 'nullable|integer|between:0,6',
             'is_locked' => 'nullable|boolean',
             'is_pinned' => 'nullable|boolean',
+            'is_expert' => 'nullable|boolean',
             'is_blurred' => 'nullable|boolean',
             'tag_ids' => 'nullable|array',
             'tag_ids.*' => 'string|max:26|exists:evt_tags,id',
@@ -425,6 +433,7 @@ class EventorApiController extends Controller
                 'access',
                 'is_locked',
                 'is_pinned',
+                'is_expert',
                 'is_blurred',
                 'occurred_at',
                 'parent_id',
@@ -621,6 +630,7 @@ class EventorApiController extends Controller
             'access' => 'nullable|integer|between:0,6',
             'is_locked' => 'nullable|boolean',
             'is_pinned' => 'nullable|boolean',
+            'is_expert' => 'nullable|boolean',
             'is_blurred' => 'nullable|boolean',
             'tag_ids' => 'nullable|array',
             'tag_ids.*' => 'string|max:26|exists:evt_tags,id',

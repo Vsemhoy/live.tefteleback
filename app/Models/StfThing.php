@@ -33,12 +33,15 @@ class StfThing extends Model
         'is_archived',
         'track_location',
         'track_lifecycle',
+        'visibility',
+        'is_expert',
     ];
 
     protected $casts = [
         'is_archived' => 'boolean',
         'track_location' => 'boolean',
         'track_lifecycle' => 'boolean',
+        'is_expert' => 'boolean',
         'purchase_date' => 'date',
         'last_opened_at' => 'datetime',
         'purchase_price' => 'integer',

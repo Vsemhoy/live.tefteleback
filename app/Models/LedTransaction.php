@@ -31,6 +31,7 @@ class LedTransaction extends Model
         'status',
         'is_disabled',
         'is_pinned',
+        'is_expert',
         'sort_order',
         'exploiter_event_id',
         'cost_type',
@@ -43,6 +44,7 @@ class LedTransaction extends Model
         'sort_order' => 'integer',
         'is_disabled' => 'boolean',
         'is_pinned' => 'boolean',
+        'is_expert' => 'boolean',
         'occurred_at' => 'date:Y-m-d',
     ];
 
@@ -64,6 +66,11 @@ class LedTransaction extends Model
     public function getKeyType()
     {
         return 'string';
+    }
+
+    public function account(): BelongsTo
+    {
+        return $this->belongsTo(LedAccount::class, 'account_id', 'id');
     }
 
     public function tags(): BelongsToMany
