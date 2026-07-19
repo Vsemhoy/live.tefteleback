@@ -8,6 +8,7 @@ use App\Models\EvtEvent;
 use App\Models\EvtSection;
 use App\Models\EvtTag;
 use App\Models\EvtType;
+use App\Models\StfThing;
 use App\Models\User;
 use Carbon\Carbon;
 use Illuminate\Http\JsonResponse;
@@ -55,6 +56,7 @@ class EventorApiController extends Controller
             'section:id,name,color,bgcolor,icon',
             'primaryContent',
             'tags',
+            'thing:id,name,last_category_id',
         ])
             ->where('user_id', $user->id)
             ->when(! $request->boolean('include_expert'), fn ($query) => $query->where('is_expert', false))
@@ -115,6 +117,7 @@ class EventorApiController extends Controller
             'section:id,name,color,bgcolor,icon',
             'primaryContent',
             'tags',
+            'thing:id,name,last_category_id',
         ])
             ->where('user_id', $user->id)
             ->when(! $request->boolean('include_expert'), fn ($query) => $query->where('is_expert', false))
@@ -146,6 +149,7 @@ class EventorApiController extends Controller
             'parent:id,name,occurred_at',
             'children:id,name,parent_id,occurred_at',
             'primaryContent',
+            'thing:id,name,last_category_id',
         ])->where('user_id', $user->id)->where('id', $id)->first();
 
         return response()->json([
@@ -384,6 +388,7 @@ class EventorApiController extends Controller
             'category_id' => 'nullable|exists:evt_categories,id',
             'project_id' => 'nullable|exists:projects,id',
             'exploiter_event_id' => 'nullable|string|size:26',
+            'thing_id' => 'nullable|string|size:26',
             'location' => 'nullable|string|max:50',
             'client' => 'nullable|string|max:120',
             'format' => 'nullable|integer|between:1,3',
@@ -416,6 +421,13 @@ class EventorApiController extends Controller
         $validated = $validator->validated();
         $eventId = $validated['id'] ?? null;
 
+        if (! empty($validated['thing_id']) && ! StfThing::where('user_id', $user->id)->where('id', $validated['thing_id'])->exists()) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Thing is invalid or not accessible',
+            ], 422);
+        }
+
         try {
             $fillableFields = [
                 'section_id',
@@ -426,6 +438,7 @@ class EventorApiController extends Controller
                 'category_id',
                 'project_id',
                 'exploiter_event_id',
+                'thing_id',
                 'location',
                 'client',
                 'format',
@@ -462,6 +475,7 @@ class EventorApiController extends Controller
 
                 $item = EvtEvent::create($data);
                 $item->syncPrimaryContent($validated['content'] ?? null);
+                $this->syncThingCategoryDefault($item, $validated, $user->id);
 
                 if (array_key_exists('tag_ids', $validated)) {
                     $requestedTagIds = array_values(array_unique($validated['tag_ids'] ?? []));
@@ -486,7 +500,7 @@ class EventorApiController extends Controller
                 return response()->json([
                     'status' => 1,
                     'message' => 'Event created successfully',
-                    'content' => $item->fresh(['primaryContent', 'tags']),
+                    'content' => $item->fresh(['primaryContent', 'tags', 'thing']),
                     'duration' => round(microtime(true) - LARAVEL_START, 3),
                 ], 201);
             }
@@ -524,6 +538,7 @@ class EventorApiController extends Controller
             }
 
             $event->update($updateData);
+            $this->syncThingCategoryDefault($event, $validated, $user->id);
 
             if (array_key_exists('content', $validated)) {
                 $event->syncPrimaryContent($validated['content']);
@@ -550,7 +565,7 @@ class EventorApiController extends Controller
             }
 
             $event->refresh();
-            $event->load('primaryContent');
+            $event->load(['primaryContent', 'thing']);
 
             return response()->json([
                 'status' => 1,
@@ -623,6 +638,7 @@ class EventorApiController extends Controller
             'category_id' => 'nullable|exists:evt_categories,id',
             'project_id' => 'nullable|exists:projects,id',
             'exploiter_event_id' => 'nullable|string|size:26',
+            'thing_id' => 'nullable|string|size:26',
             'location' => 'nullable|string|max:50',
             'client' => 'nullable|string|max:120',
             'format' => 'nullable|integer|between:1,3',
@@ -654,6 +670,13 @@ class EventorApiController extends Controller
         }
 
         $validated = $validator->validated();
+
+        if (! empty($validated['thing_id']) && ! StfThing::where('user_id', $user->id)->where('id', $validated['thing_id'])->exists()) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Thing is invalid or not accessible',
+            ], 422);
+        }
         $fillableFields = [
             'section_id',
             'name',
@@ -685,6 +708,7 @@ class EventorApiController extends Controller
             }
 
             $event->update($updateData);
+            $this->syncThingCategoryDefault($event, $validated, $user->id);
 
             if (array_key_exists('content', $validated)) {
                 $event->syncPrimaryContent($validated['content']);
@@ -711,7 +735,7 @@ class EventorApiController extends Controller
             }
 
             $event->refresh();
-            $event->load('primaryContent');
+            $event->load(['primaryContent', 'thing']);
 
             return response()->json([
                 'status' => 1,
@@ -733,6 +757,16 @@ class EventorApiController extends Controller
                 'message' => 'Server error',
             ], 500);
         }
+    }
+    private function syncThingCategoryDefault(EvtEvent $event, array $data, string $userId): void
+    {
+        if (empty($event->thing_id) || empty($data['category_id'])) {
+            return;
+        }
+
+        StfThing::where('user_id', $userId)
+            ->where('id', $event->thing_id)
+            ->update(['last_category_id' => $data['category_id']]);
     }
 
     public function saveSectionAction(Request $request): JsonResponse

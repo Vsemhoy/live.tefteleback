@@ -26,6 +26,7 @@ class EvtEvent extends Model
         'category_id',
         'project_id',
         'exploiter_event_id',
+        'thing_id',
         'content',
         'format',
         'metadata',
@@ -86,6 +87,11 @@ class EvtEvent extends Model
     public function exploiterEvent()
     {
         return $this->belongsTo(StfRegister::class, 'exploiter_event_id');
+    }
+
+    public function thing()
+    {
+        return $this->belongsTo(StfThing::class, 'thing_id');
     }
 
     public function contentBlocks()

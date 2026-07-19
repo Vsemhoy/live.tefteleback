@@ -62,6 +62,12 @@ class CtrContact extends Model
             ->orderByDesc('created_at');
     }
 
+    public function origins(): HasMany
+    {
+        return $this->hasMany(CtrContactOrigin::class, 'contact_id')
+            ->orderByDesc('created_at');
+    }
+
     public function relationsA(): HasMany
     {
         return $this->hasMany(CtrRelation::class, 'contact_a_id');

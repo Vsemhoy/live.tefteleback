@@ -19,6 +19,7 @@ class StfRegister extends Model
         'from_location_id',
         'to_location_id',
         'contact',
+        'performer_contact_id',
         'return_expected',
         'amount',
         'note',
@@ -63,6 +64,11 @@ class StfRegister extends Model
     public function toLocation()
     {
         return $this->belongsTo(StfLocation::class, 'to_location_id')->withTrashed();
+    }
+
+    public function performerContact()
+    {
+        return $this->belongsTo(CtrContact::class, 'performer_contact_id');
     }
 
     public function expense()

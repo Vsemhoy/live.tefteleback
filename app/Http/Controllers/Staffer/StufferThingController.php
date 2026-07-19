@@ -16,7 +16,7 @@ class StufferThingController extends Controller
             ->active()
             ->when(! $request->boolean('include_expert'), fn ($query) => $query->where('is_expert', false))
             ->byRelevance()
-            ->with(['location', 'category']);
+            ->with(['location', 'category', 'lastCategory']);
 
         if ($request->entity_type) {
             $query->where('entity_type', $request->entity_type);
@@ -76,6 +76,7 @@ class StufferThingController extends Controller
             'url' => 'nullable|string',
             'parent_id' => 'nullable|string|max:26',
             'category_id' => 'nullable|string|max:26',
+            'last_category_id' => 'nullable|string|max:26',
             'current_location_id' => 'nullable|string|max:26',
             'current_status' => 'nullable|string',
             'serial_no' => 'nullable|string|max:100',
@@ -113,6 +114,7 @@ class StufferThingController extends Controller
             'url' => 'nullable|string',
             'parent_id' => 'nullable|string|max:26',
             'category_id' => 'nullable|string|max:26',
+            'last_category_id' => 'nullable|string|max:26',
             'current_location_id' => 'nullable|string|max:26',
             'current_status' => 'nullable|string',
             'serial_no' => 'nullable|string|max:100',

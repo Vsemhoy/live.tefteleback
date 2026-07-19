@@ -21,6 +21,7 @@ class StfThing extends Model
         'url',
         'parent_id',
         'category_id',
+        'last_category_id',
         'current_location_id',
         'current_status',
         'serial_no',
@@ -67,6 +68,11 @@ class StfThing extends Model
     public function category()
     {
         return $this->belongsTo(LedCategory::class, 'category_id');
+    }
+
+    public function lastCategory()
+    {
+        return $this->belongsTo(LedCategory::class, 'last_category_id');
     }
 
     public function register()

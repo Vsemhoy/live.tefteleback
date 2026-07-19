@@ -53,6 +53,7 @@ class DemoCleanupService
             $deleted['ctr_contents'] = $this->deleteByUserWindow('ctr_contents', $userId, $baseline, $cutoff);
             $deleted['ctr_relations'] = $this->deleteByUserWindow('ctr_relations', $userId, $baseline, $cutoff);
             $deleted['ctr_contacts'] = $this->deleteByUserWindow('ctr_contacts', $userId, $baseline, $cutoff);
+            $deleted['fct_facts'] = $this->deleteByUserWindow('fct_facts', $userId, $baseline, $cutoff);
 
             $deleted['stf_expenses'] = $this->deleteByUserWindow('stf_expenses', $userId, $baseline, $cutoff);
             $deleted['stf_register'] = $this->deleteByIds('stf_register', $registerIds);
