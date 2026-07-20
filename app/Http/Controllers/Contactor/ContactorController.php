@@ -7,6 +7,7 @@ use App\Models\CtrContact;
 use App\Models\CtrContent;
 use App\Models\CtrDetail;
 use App\Models\CtrRelation;
+use App\Models\TskTask;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -136,6 +137,7 @@ class ContactorController extends Controller
         $data = $this->validateContent($request);
         $userId = $request->user()->id;
         $contact = $this->contactForUser($request, $data['contact_id']);
+        $this->assertOptionalTask($userId, $data['tasker_task_id'] ?? null);
 
         $content = DB::transaction(function () use ($data, $userId, $contact) {
             $content = CtrContent::create($this->contentPayload($data, $userId));
@@ -157,6 +159,7 @@ class ContactorController extends Controller
         if (isset($data['contact_id'])) {
             $this->contactForUser($request, $data['contact_id']);
         }
+        $this->assertOptionalTask($request->user()->id, $data['tasker_task_id'] ?? null);
 
         DB::transaction(function () use ($content, $data, $request) {
             $oldContactId = $content->contact_id;
@@ -295,6 +298,7 @@ class ContactorController extends Controller
             'eventor_event_id' => ['nullable', 'string', 'size:26'],
             'stuffer_register_id' => ['nullable', 'string', 'size:26'],
             'exploiter_event_id' => ['nullable', 'string', 'size:26'],
+            'tasker_task_id' => ['nullable', 'string', 'size:26'],
             'meta' => ['nullable', 'array'],
         ]);
     }
@@ -363,6 +367,7 @@ class ContactorController extends Controller
             'eventor_event_id' => $data['eventor_event_id'] ?? null,
             'stuffer_register_id' => $data['stuffer_register_id'] ?? null,
             'exploiter_event_id' => $data['exploiter_event_id'] ?? null,
+            'tasker_task_id' => $data['tasker_task_id'] ?? null,
             'meta' => $data['meta'] ?? null,
             'sort_order' => $occurredAt->timestamp,
         ];
@@ -427,6 +432,16 @@ class ContactorController extends Controller
         }
     }
 
+    private function assertOptionalTask(string $userId, ?string $taskId): void
+    {
+        if (! $taskId) {
+            return;
+        }
+
+        if (! TskTask::query()->where('user_id', $userId)->where('id', $taskId)->exists()) {
+            abort(422, 'Task must belong to current user.');
+        }
+    }
     private function syncLastContact(CtrContact $contact): void
     {
         $last = CtrContent::query()
@@ -499,6 +514,7 @@ class ContactorController extends Controller
             'eventor_event_id' => $content->eventor_event_id,
             'stuffer_register_id' => $content->stuffer_register_id,
             'exploiter_event_id' => $content->exploiter_event_id,
+            'tasker_task_id' => $content->tasker_task_id,
             'meta' => $content->meta,
         ];
     }

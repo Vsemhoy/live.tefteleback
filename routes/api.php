@@ -21,6 +21,9 @@ use App\Http\Controllers\Auth\DemoAuthController;
 use App\Http\Controllers\Demo\DemoMaintenanceController;
 use App\Http\Controllers\Contactor\ContactorController;
 use App\Http\Controllers\Factor\FactorController;
+use App\Http\Controllers\Tasker\TaskerController;
+use App\Http\Controllers\Projector\ProjectorController;
+use App\Http\Controllers\System\TimerController;
 
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/demo', [DemoAuthController::class, 'login']);
@@ -65,6 +68,36 @@ Route::middleware('auth.jwt')->group(function () {
 
 
     Route::get('/feed', [FeedController::class, 'index']);
+    Route::get('/timer/active', [TimerController::class, 'active']);
+    Route::get('/timer/entries', [TimerController::class, 'entries']);
+    Route::post('/timer/entries', [TimerController::class, 'storeEntry']);
+    Route::put('/timer/entries/{id}', [TimerController::class, 'updateEntry']);
+    Route::delete('/timer/entries/{id}', [TimerController::class, 'destroyEntry']);
+    Route::post('/timer/start', [TimerController::class, 'start']);
+    Route::post('/timer/stop', [TimerController::class, 'stop']);
+    Route::post('/timer/report', [TimerController::class, 'report']);
+
+    Route::get('/projector/projects', [ProjectorController::class, 'index']);
+    Route::post('/projector/projects', [ProjectorController::class, 'store']);
+    Route::get('/projector/projects/{id}', [ProjectorController::class, 'show']);
+    Route::put('/projector/projects/{id}', [ProjectorController::class, 'update']);
+    Route::delete('/projector/projects/{id}', [ProjectorController::class, 'destroy']);
+
+    Route::get('/tasker/tasks', [TaskerController::class, 'index']);
+    Route::post('/tasker/tasks', [TaskerController::class, 'store']);
+    Route::get('/tasker/tasks/{id}', [TaskerController::class, 'show']);
+    Route::put('/tasker/tasks/{id}', [TaskerController::class, 'update']);
+    Route::delete('/tasker/tasks/{id}', [TaskerController::class, 'destroy']);
+
+    Route::get('/tasker/logs', [TaskerController::class, 'logs']);
+    Route::post('/tasker/logs', [TaskerController::class, 'storeLog']);
+    Route::put('/tasker/logs/{id}', [TaskerController::class, 'updateLog']);
+    Route::delete('/tasker/logs/{id}', [TaskerController::class, 'destroyLog']);
+
+    Route::get('/tasker/blockers', [TaskerController::class, 'blockers']);
+    Route::post('/tasker/blockers', [TaskerController::class, 'storeBlocker']);
+    Route::put('/tasker/blockers/{id}', [TaskerController::class, 'updateBlocker']);
+    Route::delete('/tasker/blockers/{id}', [TaskerController::class, 'destroyBlocker']);
 
     Route::get('/factor/facts', [FactorController::class, 'index']);
     Route::post('/factor/facts', [FactorController::class, 'store']);

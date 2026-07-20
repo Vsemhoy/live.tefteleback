@@ -25,6 +25,7 @@ class CtrContent extends Model
         'eventor_event_id',
         'stuffer_register_id',
         'exploiter_event_id',
+        'tasker_task_id',
         'meta',
         'sort_order',
     ];
@@ -45,5 +46,9 @@ class CtrContent extends Model
     public function contact(): BelongsTo
     {
         return $this->belongsTo(CtrContact::class, 'contact_id');
+    }
+    public function taskerTask(): BelongsTo
+    {
+        return $this->belongsTo(TskTask::class, 'tasker_task_id');
     }
 }

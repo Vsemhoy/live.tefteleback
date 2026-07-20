@@ -53,4 +53,9 @@ class SysTimerEntry extends Model
             ->where('kind', 'markdown')
             ->where('is_primary', true);
     }
+    public function taskerTask()
+    {
+        return $this->belongsTo(TskTask::class, 'source_id')
+            ->where('source_module', 'tasker');
+    }
 }
