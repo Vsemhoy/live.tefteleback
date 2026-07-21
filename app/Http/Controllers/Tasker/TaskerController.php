@@ -7,6 +7,7 @@ use App\Models\CtrContact;
 use App\Models\PrjProject;
 use App\Models\TskBlocker;
 use App\Models\TskLog;
+use App\Models\TskSpan;
 use App\Models\TskTask;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -21,7 +22,7 @@ class TaskerController extends Controller
         $query = TskTask::query()
             ->where('user_id', $request->user()->id)
             ->with(['assigneeContact:id,name,nickname,avatar,avatar_url', 'parent:id,title,status_id', 'project:id,title,code,color,status_id,is_hidden,show_in_tasker'])
-            ->withCount(['children', 'logs'])
+            ->withCount(['children', 'logs', 'spans'])
             ->when(! $request->boolean('include_expert'), fn ($q) => $q->where('is_expert', false))
             ->when(! $request->boolean('include_hidden'), fn ($q) => $q->where('is_hidden', false));
 
@@ -30,7 +31,11 @@ class TaskerController extends Controller
         }
 
         if ($request->filled('assignee_contact_id')) {
-            $query->where('assignee_contact_id', $request->get('assignee_contact_id'));
+            if ($request->get('assignee_contact_id') === 'me') {
+                $query->whereNull('assignee_contact_id');
+            } else {
+                $query->where('assignee_contact_id', $request->get('assignee_contact_id'));
+            }
         }
 
         if ($request->filled('parent_task_id')) {
@@ -79,6 +84,7 @@ class TaskerController extends Controller
             'logs.blocker:id,title,description,occurrence_count',
             'logs.timerEntry:id,started_at,ended_at,duration_min,note',
             'timerEntries:id,started_at,ended_at,duration_min,entry_type,time_type,note',
+            'spans',
         ]);
 
         return response()->json($this->presentTask($task, true));
@@ -140,6 +146,134 @@ class TaskerController extends Controller
         return response()->json(['id' => $id]);
     }
 
+    public function spans(Request $request)
+    {
+        $query = TskSpan::query()
+            ->where('user_id', $request->user()->id)
+            ->with('task:id,title,status_id,priority_id')
+            ->orderByDesc('started_at')
+            ->orderByDesc('planned_start_at')
+            ->orderByDesc('created_at');
+
+        if ($request->filled('task_id')) {
+            $query->where('task_id', $request->get('task_id'));
+        }
+
+        if ($request->filled('kind') && $request->get('kind') !== 'all') {
+            $query->where('kind', $request->get('kind'));
+        }
+
+        if ($request->filled('from_date')) {
+            $query->where(function ($q) use ($request) {
+                $from = $request->get('from_date');
+                $q->whereDate('started_at', '>=', $from)
+                  ->orWhereDate('planned_start_at', '>=', $from);
+            });
+        }
+
+        if ($request->filled('to_date')) {
+            $query->where(function ($q) use ($request) {
+                $to = $request->get('to_date');
+                $q->whereDate('started_at', '<=', $to)
+                  ->orWhereDate('planned_start_at', '<=', $to);
+            });
+        }
+
+        if ($request->boolean('live_only')) {
+            $query->where('kind', 'fact')->whereNull('ended_at')->whereNotNull('started_at');
+        }
+
+        $spans = $query->limit(min(max((int) $request->get('limit', 200), 1), 500))->get();
+
+        return response()->json($spans->map(fn (TskSpan $span) => $this->presentSpan($span))->values());
+    }
+
+    public function storeSpan(Request $request)
+    {
+        $data = $this->validateSpan($request);
+        $task = $this->taskForUser($request, $data['task_id']);
+
+        $span = DB::transaction(function () use ($data, $task) {
+            $span = TskSpan::create($this->spanPayload($data, $task->user_id));
+            $this->recalculateTaskTrackedSeconds($task->user_id, $task->id);
+
+            return $span;
+        });
+
+        return response()->json($this->presentSpan($span->load('task:id,title,status_id,priority_id')), 201);
+    }
+
+    public function updateSpan(Request $request, string $id)
+    {
+        $span = TskSpan::query()->where('user_id', $request->user()->id)->findOrFail($id);
+        $data = $this->validateSpan($request, false);
+        $oldTaskId = $span->task_id;
+
+        if (isset($data['task_id'])) {
+            $this->taskForUser($request, $data['task_id']);
+        }
+
+        DB::transaction(function () use ($span, $data, $oldTaskId, $request) {
+            $span->update($this->spanPayload(array_merge($span->toArray(), $data), $request->user()->id, false, array_keys($data)));
+            $fresh = $span->fresh();
+            $this->recalculateTaskTrackedSeconds($fresh->user_id, $fresh->task_id);
+            if ($oldTaskId !== $fresh->task_id) {
+                $this->recalculateTaskTrackedSeconds($fresh->user_id, $oldTaskId);
+            }
+        });
+
+        return response()->json($this->presentSpan($span->fresh()->load('task:id,title,status_id,priority_id')));
+    }
+
+    public function destroySpan(Request $request, string $id)
+    {
+        $span = TskSpan::query()->where('user_id', $request->user()->id)->findOrFail($id);
+        $taskId = $span->task_id;
+
+        DB::transaction(function () use ($span, $taskId) {
+            $span->delete();
+            $this->recalculateTaskTrackedSeconds($span->user_id, $taskId);
+        });
+
+        return response()->json(['id' => $id]);
+    }
+
+    public function closeOverdueSpans(Request $request)
+    {
+        $userId = $request->user()->id;
+        $now = now();
+        $closedTaskIds = [];
+
+        DB::transaction(function () use ($userId, $now, &$closedTaskIds) {
+            TskSpan::query()
+                ->where('user_id', $userId)
+                ->where('kind', 'fact')
+                ->whereNull('ended_at')
+                ->whereNotNull('started_at')
+                ->whereNotNull('auto_stop_at')
+                ->where('auto_stop_at', '<=', $now)
+                ->orderBy('auto_stop_at')
+                ->lockForUpdate()
+                ->get()
+                ->each(function (TskSpan $span) use (&$closedTaskIds) {
+                    $span->update([
+                        'ended_at' => $span->auto_stop_at,
+                        'auto_stopped_at' => now(),
+                        'auto_stop_reason' => 'limit_reached',
+                    ]);
+                    $closedTaskIds[$span->task_id] = true;
+                });
+
+            foreach (array_keys($closedTaskIds) as $taskId) {
+                $this->recalculateTaskTrackedSeconds($userId, $taskId);
+            }
+        });
+
+        return response()->json([
+            'closed_count' => count($closedTaskIds),
+            'task_ids' => array_values(array_keys($closedTaskIds)),
+        ]);
+    }
     public function logs(Request $request)
     {
         $query = TskLog::query()
@@ -258,6 +392,23 @@ class TaskerController extends Controller
         ]);
     }
 
+    private function validateSpan(Request $request, bool $creating = true): array
+    {
+        return $request->validate([
+            'task_id' => [$creating ? 'required' : 'sometimes', 'string', 'size:26'],
+            'kind' => ['nullable', 'in:plan,fact'],
+            'title' => ['nullable', 'string', 'max:255'],
+            'content' => ['nullable', 'string'],
+            'planned_start_at' => ['nullable', 'date'],
+            'planned_end_at' => ['nullable', 'date', 'after_or_equal:planned_start_at'],
+            'started_at' => ['nullable', 'date'],
+            'ended_at' => ['nullable', 'date', 'after_or_equal:started_at'],
+            'auto_stop_at' => ['nullable', 'date'],
+            'auto_stopped_at' => ['nullable', 'date'],
+            'auto_stop_reason' => ['nullable', 'string', 'max:32'],
+            'sort_order' => ['nullable', 'integer'],
+        ]);
+    }
     private function validateLog(Request $request, bool $creating = true): array
     {
         return $request->validate([
@@ -311,6 +462,32 @@ class TaskerController extends Controller
         return $payload;
     }
 
+    private function spanPayload(array $data, string $userId, bool $creating = true, array $keys = []): array
+    {
+        $payload = [
+            'user_id' => $userId,
+            'task_id' => $data['task_id'],
+            'kind' => $data['kind'] ?? 'fact',
+            'title' => $data['title'] ?? null,
+            'content' => $data['content'] ?? null,
+            'planned_start_at' => $this->optionalCarbon($data['planned_start_at'] ?? null),
+            'planned_end_at' => $this->optionalCarbon($data['planned_end_at'] ?? null),
+            'started_at' => $this->optionalCarbon($data['started_at'] ?? null),
+            'ended_at' => $this->optionalCarbon($data['ended_at'] ?? null),
+            'auto_stop_at' => $this->optionalCarbon($data['auto_stop_at'] ?? null),
+            'auto_stopped_at' => $this->optionalCarbon($data['auto_stopped_at'] ?? null),
+            'auto_stop_reason' => $data['auto_stop_reason'] ?? null,
+            'sort_order' => (int) ($data['sort_order'] ?? 0),
+        ];
+
+        if (! $creating) {
+            $allowed = array_fill_keys($keys, true);
+            $allowed['user_id'] = true;
+            return array_filter($payload, fn ($value, $key) => isset($allowed[$key]), ARRAY_FILTER_USE_BOTH);
+        }
+
+        return $payload;
+    }
     private function logPayload(array $data, string $userId, bool $creating = true, array $keys = []): array
     {
         $payload = [
@@ -333,6 +510,30 @@ class TaskerController extends Controller
         return $payload;
     }
 
+    private function optionalCarbon($value): ?Carbon
+    {
+        return $value ? Carbon::parse($value) : null;
+    }
+
+    private function recalculateTaskTrackedSeconds(string $userId, string $taskId): ?TskTask
+    {
+        $task = TskTask::query()->where('user_id', $userId)->where('id', $taskId)->first();
+        if (! $task) {
+            return null;
+        }
+
+        $seconds = (int) TskSpan::query()
+            ->where('user_id', $userId)
+            ->where('task_id', $taskId)
+            ->where('kind', 'fact')
+            ->whereNotNull('started_at')
+            ->whereNotNull('ended_at')
+            ->sum(DB::raw('TIMESTAMPDIFF(SECOND, started_at, ended_at)'));
+
+        $task->update(['tracked_seconds' => max(0, $seconds)]);
+
+        return $task;
+    }
     private function taskForUser(Request $request, string $id): TskTask
     {
         return TskTask::query()->where('user_id', $request->user()->id)->findOrFail($id);
@@ -437,6 +638,7 @@ class TaskerController extends Controller
             'updated_at' => optional($task->updated_at)->toISOString(),
             'children_count' => $task->children_count ?? null,
             'logs_count' => $task->logs_count ?? null,
+            'spans_count' => $task->spans_count ?? null,
         ];
 
         if ($full) {
@@ -451,11 +653,39 @@ class TaskerController extends Controller
                 'time_type' => $entry->time_type,
                 'note' => $entry->note,
             ])->values();
+            $payload['spans'] = $task->spans->map(fn (TskSpan $span) => $this->presentSpan($span))->values();
         }
 
         return $payload;
     }
 
+    private function presentSpan(TskSpan $span): array
+    {
+        return [
+            'id' => $span->id,
+            'user_id' => $span->user_id,
+            'task_id' => $span->task_id,
+            'task' => $span->task ? [
+                'id' => $span->task->id,
+                'title' => $span->task->title,
+                'status_id' => $span->task->status_id,
+                'priority_id' => $span->task->priority_id,
+            ] : null,
+            'kind' => $span->kind,
+            'title' => $span->title,
+            'content' => $span->content,
+            'planned_start_at' => optional($span->planned_start_at)->toISOString(),
+            'planned_end_at' => optional($span->planned_end_at)->toISOString(),
+            'started_at' => optional($span->started_at)->toISOString(),
+            'ended_at' => optional($span->ended_at)->toISOString(),
+            'auto_stop_at' => optional($span->auto_stop_at)->toISOString(),
+            'auto_stopped_at' => optional($span->auto_stopped_at)->toISOString(),
+            'auto_stop_reason' => $span->auto_stop_reason,
+            'sort_order' => $span->sort_order,
+            'created_at' => optional($span->created_at)->toISOString(),
+            'updated_at' => optional($span->updated_at)->toISOString(),
+        ];
+    }
     private function presentLog(TskLog $log): array
     {
         return [
@@ -497,3 +727,6 @@ class TaskerController extends Controller
         ];
     }
 }
+
+
+

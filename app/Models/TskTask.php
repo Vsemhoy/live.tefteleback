@@ -71,6 +71,13 @@ class TskTask extends Model
         return $this->hasMany(TskLog::class, 'task_id')->orderByDesc('occurred_at')->orderByDesc('created_at');
     }
 
+    public function spans(): HasMany
+    {
+        return $this->hasMany(TskSpan::class, 'task_id')
+            ->orderByDesc('started_at')
+            ->orderByDesc('planned_start_at');
+    }
+
     public function timerEntries(): HasMany
     {
         return $this->hasMany(SysTimerEntry::class, 'source_id')

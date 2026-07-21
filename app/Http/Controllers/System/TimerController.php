@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\StfRegister;
 use App\Models\SysTimerEntry;
 use App\Models\TskLog;
+use App\Models\TskSpan;
 use App\Models\TskTask;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
@@ -19,13 +20,40 @@ class TimerController extends Controller
 
     public function active(Request $request)
     {
-        $entry = $this->activeEntry($request->user()->id);
+        $userId = $request->user()->id;
+        $span = $this->activeTaskSpan($userId);
+        if ($span) {
+            return response()->json($this->presentTaskSpanTimer($span));
+        }
+
+        $entry = $this->activeEntry($userId);
 
         return response()->json($entry ? $this->presentTimer($entry) : null);
     }
 
     public function entries(Request $request)
     {
+        if ($request->get('source_module') === self::TASKER_MODULE) {
+            $query = TskSpan::query()
+                ->where('user_id', $request->user()->id)
+                ->where('kind', 'fact')
+                ->with('task:id,title,status_id,priority_id,tracked_seconds,due_at')
+                ->orderByDesc('started_at')
+                ->orderByDesc('created_at');
+
+            if ($request->filled('source_id')) {
+                $query->where('task_id', $request->get('source_id'));
+            }
+
+            if ($request->boolean('completed_only')) {
+                $query->whereNotNull('ended_at');
+            }
+
+            $spans = $query->limit(min(max((int) $request->get('limit', 200), 1), 500))->get();
+
+            return response()->json($spans->map(fn (TskSpan $span) => $this->presentTaskSpanTimer($span))->values());
+        }
+
         $query = SysTimerEntry::query()
             ->where('user_id', $request->user()->id)
             ->orderByDesc('started_at')
@@ -54,6 +82,36 @@ class TimerController extends Controller
         $userId = $request->user()->id;
         $this->assertSource($userId, $data['source_module'], $data['source_id']);
 
+        if ($data['source_module'] === self::TASKER_MODULE) {
+            $result = DB::transaction(function () use ($data, $userId) {
+                $startedAt = Carbon::parse($data['started_at']);
+                $endedAt = Carbon::parse($data['ended_at']);
+
+                $span = TskSpan::create([
+                    'user_id' => $userId,
+                    'task_id' => $data['source_id'],
+                    'kind' => 'fact',
+                    'title' => $data['note'] ?? null,
+                    'content' => $data['content'] ?? null,
+                    'started_at' => $startedAt,
+                    'ended_at' => $endedAt,
+                    'sort_order' => $startedAt->timestamp,
+                ]);
+
+                $task = $this->recalculateTaskTrackedSeconds($userId, $data['source_id']);
+
+                return [$span->fresh(), $task?->fresh()];
+            });
+
+            [$span, $task] = $result;
+
+            return response()->json([
+                'timer' => $this->presentTaskSpanTimer($span),
+                'task' => $task ? $this->presentTaskLite($task) : null,
+                'log' => null,
+            ], 201);
+        }
+
         $result = DB::transaction(function () use ($data, $userId) {
             $startedAt = Carbon::parse($data['started_at']);
             $endedAt = Carbon::parse($data['ended_at']);
@@ -72,10 +130,7 @@ class TimerController extends Controller
                 'note' => $data['note'] ?? null,
             ]);
 
-            $task = $this->syncTaskAfterEntryChange($entry);
-            $log = $this->syncEntryReport($entry, $data['content'] ?? null, $endedAt, $seconds);
-
-            return [$entry->fresh(), $task?->fresh(), $log?->fresh()];
+            return [$entry->fresh(), null, null];
         });
 
         [$entry, $task, $log] = $result;
@@ -89,19 +144,57 @@ class TimerController extends Controller
 
     public function updateEntry(Request $request, string $id)
     {
-        $entry = SysTimerEntry::query()->where('user_id', $request->user()->id)->findOrFail($id);
+        $userId = $request->user()->id;
+        $span = TskSpan::query()->where('user_id', $userId)->find($id);
+        if ($span) {
+            if (! $span->ended_at) {
+                return response()->json(['message' => 'Active timers must be stopped before manual editing.'], 422);
+            }
+
+            $data = $this->validateEntry($request, false);
+            $oldTaskId = $span->task_id;
+            $taskId = $data['source_id'] ?? $span->task_id;
+            $this->assertSource($userId, self::TASKER_MODULE, $taskId);
+
+            DB::transaction(function () use ($span, $data, $taskId, $oldTaskId, $userId) {
+                $startedAt = Carbon::parse($data['started_at'] ?? $span->started_at);
+                $endedAt = Carbon::parse($data['ended_at'] ?? $span->ended_at);
+
+                $span->update([
+                    'task_id' => $taskId,
+                    'title' => array_key_exists('note', $data) ? $data['note'] : $span->title,
+                    'content' => array_key_exists('content', $data) ? $data['content'] : $span->content,
+                    'started_at' => $startedAt,
+                    'ended_at' => $endedAt,
+                    'sort_order' => $startedAt->timestamp,
+                ]);
+
+                $this->recalculateTaskTrackedSeconds($userId, $taskId);
+                if ($oldTaskId !== $taskId) {
+                    $this->recalculateTaskTrackedSeconds($userId, $oldTaskId);
+                }
+            });
+
+            $fresh = $span->fresh()->load('task:id,title,status_id,priority_id,tracked_seconds,due_at');
+
+            return response()->json([
+                'timer' => $this->presentTaskSpanTimer($fresh),
+                'task' => $fresh->task ? $this->presentTaskLite($fresh->task) : null,
+                'log' => null,
+            ]);
+        }
+
+        $entry = SysTimerEntry::query()->where('user_id', $userId)->findOrFail($id);
         if (! $entry->ended_at) {
             return response()->json(['message' => 'Active timers must be stopped before manual editing.'], 422);
         }
 
         $data = $this->validateEntry($request, false);
-        $userId = $request->user()->id;
-        $oldTaskId = $entry->source_module === self::TASKER_MODULE ? $entry->source_id : null;
         $module = $data['source_module'] ?? $entry->source_module;
         $sourceId = $data['source_id'] ?? $entry->source_id;
         $this->assertSource($userId, $module, $sourceId);
 
-        $result = DB::transaction(function () use ($entry, $data, $module, $sourceId, $oldTaskId) {
+        $entry = DB::transaction(function () use ($entry, $data, $module, $sourceId) {
             $startedAt = Carbon::parse($data['started_at'] ?? $entry->started_at);
             $endedAt = Carbon::parse($data['ended_at'] ?? $entry->ended_at);
             $seconds = $this->secondsBetween($startedAt, $endedAt);
@@ -122,37 +215,39 @@ class TimerController extends Controller
             }
 
             $entry->update($payload);
-            $task = $this->syncTaskAfterEntryChange($entry->fresh(), $oldTaskId);
-            $log = array_key_exists('content', $data)
-                ? $this->syncEntryReport($entry->fresh(), $data['content'], $endedAt, $seconds)
-                : null;
 
-            return [$entry->fresh(), $task?->fresh(), $log?->fresh()];
+            return $entry->fresh();
         });
-
-        [$entry, $task, $log] = $result;
 
         return response()->json([
             'timer' => $this->presentTimer($entry),
-            'task' => $task ? $this->presentTaskLite($task) : null,
-            'log' => $log ? $this->presentLogLite($log) : null,
+            'task' => null,
+            'log' => null,
         ]);
     }
 
     public function destroyEntry(Request $request, string $id)
     {
-        $entry = SysTimerEntry::query()->where('user_id', $request->user()->id)->findOrFail($id);
-        $oldTaskId = $entry->source_module === self::TASKER_MODULE ? $entry->source_id : null;
+        $userId = $request->user()->id;
+        $span = TskSpan::query()->where('user_id', $userId)->find($id);
+        if ($span) {
+            $taskId = $span->task_id;
+            DB::transaction(function () use ($span, $taskId, $userId) {
+                $span->delete();
+                $this->recalculateTaskTrackedSeconds($userId, $taskId);
+            });
 
-        DB::transaction(function () use ($entry, $oldTaskId) {
+            return response()->json(['id' => $id]);
+        }
+
+        $entry = SysTimerEntry::query()->where('user_id', $userId)->findOrFail($id);
+
+        DB::transaction(function () use ($entry) {
             TskLog::query()
                 ->where('timer_entry_id', $entry->id)
                 ->update(['timer_entry_id' => null]);
 
             $entry->delete();
-            if ($oldTaskId) {
-                $this->recalculateTaskTrackedSeconds($entry->user_id, $oldTaskId);
-            }
         });
 
         return response()->json(['id' => $id]);
@@ -166,36 +261,56 @@ class TimerController extends Controller
             'time_type' => ['nullable', 'in:self,service'],
             'note' => ['nullable', 'string'],
             'started_at' => ['nullable', 'date'],
+            'auto_stop_at' => ['nullable', 'date'],
         ]);
 
         $userId = $request->user()->id;
         $this->assertSource($userId, $data['source_module'], $data['source_id']);
 
+        if ($data['source_module'] === self::TASKER_MODULE) {
+            $span = DB::transaction(function () use ($data, $userId) {
+                $this->closeOpenTimers($userId);
+                $startedAt = Carbon::parse($data['started_at'] ?? now());
+
+                $span = TskSpan::create([
+                    'user_id' => $userId,
+                    'task_id' => $data['source_id'],
+                    'kind' => 'fact',
+                    'title' => $data['note'] ?? null,
+                    'started_at' => $startedAt,
+                    'ended_at' => null,
+                    'auto_stop_at' => isset($data['auto_stop_at']) ? Carbon::parse($data['auto_stop_at']) : null,
+                    'sort_order' => $startedAt->timestamp,
+                ]);
+
+                TskTask::query()
+                    ->where('user_id', $userId)
+                    ->where('id', $data['source_id'])
+                    ->whereNotIn('status_id', self::TASKER_DONE_STATUSES)
+                    ->update(['status_id' => self::TASKER_IN_PROGRESS]);
+
+                return $span;
+            });
+
+            return response()->json($this->presentTaskSpanTimer($span->fresh()), 201);
+        }
+
         $entry = DB::transaction(function () use ($data, $userId) {
             $this->closeOpenTimers($userId);
+            $startedAt = Carbon::parse($data['started_at'] ?? now());
 
-            $entry = SysTimerEntry::create([
+            return SysTimerEntry::create([
                 'user_id' => $userId,
-                'started_at' => Carbon::parse($data['started_at'] ?? now()),
+                'started_at' => $startedAt,
                 'ended_at' => null,
                 'duration_min' => 0,
                 'entry_type' => 'timer',
                 'time_type' => $data['time_type'] ?? 'self',
                 'source_module' => $data['source_module'],
                 'source_id' => $data['source_id'],
-                'sort_order' => now()->timestamp,
+                'sort_order' => $startedAt->timestamp,
                 'note' => $data['note'] ?? null,
             ]);
-
-            if ($data['source_module'] === self::TASKER_MODULE) {
-                TskTask::query()
-                    ->where('user_id', $userId)
-                    ->where('id', $data['source_id'])
-                    ->whereNotIn('status_id', self::TASKER_DONE_STATUSES)
-                    ->update(['status_id' => self::TASKER_IN_PROGRESS]);
-            }
-
-            return $entry;
         });
 
         return response()->json($this->presentTimer($entry->fresh()), 201);
@@ -212,12 +327,45 @@ class TimerController extends Controller
         ]);
 
         $userId = $request->user()->id;
+        $span = $this->taskSpanForStop($userId, $data['timer_entry_id'] ?? null);
+        if ($span) {
+            $result = DB::transaction(function () use ($span, $data, $userId) {
+                $endedAt = Carbon::parse($data['ended_at'] ?? now());
+
+                $span->update([
+                    'ended_at' => $endedAt,
+                    'title' => array_key_exists('note', $data) ? $data['note'] : $span->title,
+                    'content' => array_key_exists('content', $data) ? $data['content'] : $span->content,
+                ]);
+
+                $task = TskTask::query()->where('user_id', $userId)->where('id', $span->task_id)->first();
+                if ($task) {
+                    $payload = ['tracked_seconds' => $this->taskTrackedSeconds($userId, $task->id)];
+                    if (isset($data['status_id'])) {
+                        $payload['status_id'] = (int) $data['status_id'];
+                        $payload['closed_at'] = in_array((int) $data['status_id'], self::TASKER_DONE_STATUSES, true) ? now() : null;
+                    }
+                    $task->update($payload);
+                }
+
+                return [$span->fresh()->load('task:id,title,status_id,priority_id,tracked_seconds,due_at'), $task?->fresh()];
+            });
+
+            [$span, $task] = $result;
+
+            return response()->json([
+                'timer' => $this->presentTaskSpanTimer($span),
+                'task' => $task ? $this->presentTaskLite($task) : null,
+                'log' => null,
+            ]);
+        }
+
         $entry = $this->timerForStop($userId, $data['timer_entry_id'] ?? null);
         if (! $entry) {
             return response()->json(['message' => 'No active timer found.'], 404);
         }
 
-        $result = DB::transaction(function () use ($entry, $data, $userId) {
+        $entry = DB::transaction(function () use ($entry, $data) {
             $endedAt = Carbon::parse($data['ended_at'] ?? now());
             $seconds = $this->secondsBetween($entry->started_at, $endedAt);
 
@@ -227,31 +375,13 @@ class TimerController extends Controller
                 'note' => array_key_exists('note', $data) ? $data['note'] : $entry->note,
             ]);
 
-            $task = null;
-            $log = null;
-
-            if ($entry->source_module === self::TASKER_MODULE) {
-                $task = TskTask::query()->where('user_id', $userId)->where('id', $entry->source_id)->first();
-                if ($task) {
-                    $payload = ['tracked_seconds' => $this->taskTrackedSeconds($userId, $task->id)];
-                    if (isset($data['status_id'])) {
-                        $payload['status_id'] = (int) $data['status_id'];
-                        $payload['closed_at'] = in_array((int) $data['status_id'], self::TASKER_DONE_STATUSES, true) ? now() : null;
-                    }
-                    $task->update($payload);
-                    $log = $this->syncEntryReport($entry->fresh(), $data['content'] ?? null, $endedAt, $seconds);
-                }
-            }
-
-            return [$entry->fresh(), $task?->fresh(), $log?->fresh()];
+            return $entry->fresh();
         });
-
-        [$entry, $task, $log] = $result;
 
         return response()->json([
             'timer' => $this->presentTimer($entry),
-            'task' => $task ? $this->presentTaskLite($task) : null,
-            'log' => $log ? $this->presentLogLite($log) : null,
+            'task' => null,
+            'log' => null,
         ]);
     }
 
@@ -264,6 +394,23 @@ class TimerController extends Controller
         ]);
 
         $userId = $request->user()->id;
+        $span = $data['timer_entry_id'] ?? null
+            ? TskSpan::query()->where('user_id', $userId)->find($data['timer_entry_id'])
+            : $this->activeTaskSpan($userId);
+
+        if ($span) {
+            $span->update([
+                'content' => $data['content'],
+                'title' => array_key_exists('note', $data) ? $data['note'] : $span->title,
+            ]);
+
+            return response()->json([
+                'timer' => $this->presentTaskSpanTimer($span->fresh()),
+                'task' => $span->task ? $this->presentTaskLite($span->task) : null,
+                'log' => null,
+            ], 201);
+        }
+
         $entry = $data['timer_entry_id'] ?? null
             ? SysTimerEntry::query()->where('user_id', $userId)->findOrFail($data['timer_entry_id'])
             : $this->activeEntry($userId);
@@ -272,32 +419,7 @@ class TimerController extends Controller
             return response()->json(['message' => 'No timer found.'], 404);
         }
 
-        if ($entry->source_module !== self::TASKER_MODULE) {
-            return response()->json(['message' => 'Timer reports are currently supported for Tasker timers only.'], 422);
-        }
-
-        $task = TskTask::query()->where('user_id', $userId)->where('id', $entry->source_id)->firstOrFail();
-
-        $log = DB::transaction(function () use ($entry, $task, $data, $userId) {
-            if (array_key_exists('note', $data)) {
-                $entry->update(['note' => $data['note']]);
-            }
-
-            return TskLog::create([
-                'user_id' => $userId,
-                'task_id' => $task->id,
-                'kind' => 'report',
-                'content' => $data['content'],
-                'timer_entry_id' => $entry->id,
-                'occurred_at' => now(),
-            ]);
-        });
-
-        return response()->json([
-            'timer' => $this->presentTimer($entry->fresh()),
-            'task' => $this->presentTaskLite($task->fresh()),
-            'log' => $this->presentLogLite($log),
-        ], 201);
+        return response()->json(['message' => 'Timer reports are currently supported for Tasker timers only.'], 422);
     }
 
     private function validateEntry(Request $request, bool $creating = true): array
@@ -323,6 +445,18 @@ class TimerController extends Controller
             ->first();
     }
 
+    private function activeTaskSpan(string $userId): ?TskSpan
+    {
+        return TskSpan::query()
+            ->where('user_id', $userId)
+            ->where('kind', 'fact')
+            ->whereNull('ended_at')
+            ->whereNotNull('started_at')
+            ->with('task:id,title,status_id,priority_id,tracked_seconds,due_at')
+            ->orderByDesc('started_at')
+            ->first();
+    }
+
     private function timerForStop(string $userId, ?string $id): ?SysTimerEntry
     {
         $query = SysTimerEntry::query()->where('user_id', $userId)->whereNull('ended_at');
@@ -334,8 +468,34 @@ class TimerController extends Controller
         return $query->orderByDesc('started_at')->first();
     }
 
+    private function taskSpanForStop(string $userId, ?string $id): ?TskSpan
+    {
+        $query = TskSpan::query()
+            ->where('user_id', $userId)
+            ->where('kind', 'fact')
+            ->whereNull('ended_at')
+            ->whereNotNull('started_at');
+
+        if ($id) {
+            $query->where('id', $id);
+        }
+
+        return $query->orderByDesc('started_at')->first();
+    }
+
     private function closeOpenTimers(string $userId): void
     {
+        TskSpan::query()
+            ->where('user_id', $userId)
+            ->where('kind', 'fact')
+            ->whereNull('ended_at')
+            ->whereNotNull('started_at')
+            ->get()
+            ->each(function (TskSpan $span) use ($userId) {
+                $span->update(['ended_at' => now()]);
+                $this->recalculateTaskTrackedSeconds($userId, $span->task_id);
+            });
+
         SysTimerEntry::query()
             ->where('user_id', $userId)
             ->whereNull('ended_at')
@@ -347,10 +507,6 @@ class TimerController extends Controller
                     'ended_at' => $endedAt,
                     'duration_min' => (int) ceil($seconds / 60),
                 ]);
-
-                if ($entry->source_module === self::TASKER_MODULE) {
-                    $this->recalculateTaskTrackedSeconds($entry->user_id, $entry->source_id);
-                }
             });
     }
 
@@ -373,19 +529,6 @@ class TimerController extends Controller
         abort(422, 'Unsupported timer source module.');
     }
 
-    private function syncTaskAfterEntryChange(SysTimerEntry $entry, ?string $oldTaskId = null): ?TskTask
-    {
-        if ($oldTaskId && ($entry->source_module !== self::TASKER_MODULE || $entry->source_id !== $oldTaskId)) {
-            $this->recalculateTaskTrackedSeconds($entry->user_id, $oldTaskId);
-        }
-
-        if ($entry->source_module !== self::TASKER_MODULE) {
-            return null;
-        }
-
-        return $this->recalculateTaskTrackedSeconds($entry->user_id, $entry->source_id);
-    }
-
     private function recalculateTaskTrackedSeconds(string $userId, string $taskId): ?TskTask
     {
         $task = TskTask::query()->where('user_id', $userId)->where('id', $taskId)->first();
@@ -400,43 +543,13 @@ class TimerController extends Controller
 
     private function taskTrackedSeconds(string $userId, string $taskId): int
     {
-        return (int) SysTimerEntry::query()
+        return (int) TskSpan::query()
             ->where('user_id', $userId)
-            ->where('source_module', self::TASKER_MODULE)
-            ->where('source_id', $taskId)
+            ->where('task_id', $taskId)
+            ->where('kind', 'fact')
+            ->whereNotNull('started_at')
             ->whereNotNull('ended_at')
-            ->sum(DB::raw('duration_min * 60'));
-    }
-
-    private function syncEntryReport(SysTimerEntry $entry, ?string $content, Carbon $occurredAt, int $seconds): ?TskLog
-    {
-        if ($entry->source_module !== self::TASKER_MODULE || trim((string) $content) === '') {
-            return null;
-        }
-
-        $task = TskTask::query()->where('user_id', $entry->user_id)->where('id', $entry->source_id)->first();
-        if (! $task) {
-            return null;
-        }
-
-        $log = TskLog::query()
-            ->where('user_id', $entry->user_id)
-            ->where('timer_entry_id', $entry->id)
-            ->where('kind', 'report')
-            ->first() ?: new TskLog();
-
-        $log->fill([
-            'user_id' => $entry->user_id,
-            'task_id' => $task->id,
-            'kind' => 'report',
-            'content' => $content,
-            'timer_entry_id' => $entry->id,
-            'occurred_at' => $occurredAt,
-            'meta' => ['duration_seconds' => $seconds],
-        ]);
-        $log->save();
-
-        return $log;
+            ->sum(DB::raw('TIMESTAMPDIFF(SECOND, started_at, ended_at)'));
     }
 
     private function secondsBetween($startedAt, $endedAt): int
@@ -448,13 +561,43 @@ class TimerController extends Controller
         return max(0, Carbon::parse($startedAt)->diffInSeconds(Carbon::parse($endedAt)));
     }
 
+    private function presentTaskSpanTimer(TskSpan $span): array
+    {
+        $task = $span->relationLoaded('task') ? $span->task : TskTask::query()->where('user_id', $span->user_id)->where('id', $span->task_id)->first();
+        $elapsedSeconds = $span->ended_at
+            ? $this->secondsBetween($span->started_at, $span->ended_at)
+            : $this->secondsBetween($span->started_at, now());
+
+        return [
+            'id' => $span->id,
+            'user_id' => $span->user_id,
+            'started_at' => optional($span->started_at)->toISOString(),
+            'ended_at' => optional($span->ended_at)->toISOString(),
+            'duration_min' => (int) ceil($elapsedSeconds / 60),
+            'elapsed_seconds' => $elapsedSeconds,
+            'entry_type' => $span->ended_at ? 'manual' : 'timer',
+            'time_type' => 'self',
+            'source_module' => self::TASKER_MODULE,
+            'source_id' => $span->task_id,
+            'task_id' => $span->task_id,
+            'source' => $task ? $this->presentTaskLite($task) : null,
+            'note' => $span->title,
+            'content' => $span->content,
+            'log_id' => null,
+            'span_id' => $span->id,
+            'kind' => $span->kind,
+            'planned_start_at' => optional($span->planned_start_at)->toISOString(),
+            'planned_end_at' => optional($span->planned_end_at)->toISOString(),
+            'auto_stop_at' => optional($span->auto_stop_at)->toISOString(),
+            'auto_stopped_at' => optional($span->auto_stopped_at)->toISOString(),
+            'auto_stop_reason' => $span->auto_stop_reason,
+        ];
+    }
+
     private function presentTimer(SysTimerEntry $entry): array
     {
         $source = null;
-        if ($entry->source_module === self::TASKER_MODULE) {
-            $task = TskTask::query()->where('user_id', $entry->user_id)->where('id', $entry->source_id)->first();
-            $source = $task ? $this->presentTaskLite($task) : null;
-        } elseif ($entry->source_module === 'exploiter') {
+        if ($entry->source_module === 'exploiter') {
             $event = StfRegister::query()->where('user_id', $entry->user_id)->where('id', $entry->source_id)->first();
             $source = $event ? [
                 'id' => $event->id,
@@ -467,15 +610,6 @@ class TimerController extends Controller
         $elapsedSeconds = $entry->ended_at
             ? $this->secondsBetween($entry->started_at, $entry->ended_at)
             : $this->secondsBetween($entry->started_at, now());
-
-        $report = $entry->source_module === self::TASKER_MODULE
-            ? TskLog::query()
-                ->where('user_id', $entry->user_id)
-                ->where('timer_entry_id', $entry->id)
-                ->where('kind', 'report')
-                ->latest('occurred_at')
-                ->first()
-            : null;
 
         return [
             'id' => $entry->id,
@@ -490,8 +624,8 @@ class TimerController extends Controller
             'source_id' => $entry->source_id,
             'source' => $source,
             'note' => $entry->note,
-            'content' => $report?->content,
-            'log_id' => $report?->id,
+            'content' => null,
+            'log_id' => null,
         ];
     }
 

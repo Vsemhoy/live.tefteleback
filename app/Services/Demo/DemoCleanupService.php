@@ -48,6 +48,7 @@ class DemoCleanupService
             $deleted['led_transaction_tags'] = $this->deleteWhereIn('led_transaction_tags', 'transaction_id', $txIds);
 
             $deleted['sys_timer_entries'] = $this->deleteByUserWindow('sys_timer_entries', $userId, $baseline, $cutoff);
+            $deleted['tsk_spans'] = $this->deleteByUserWindow('tsk_spans', $userId, $baseline, $cutoff);
             $deleted['cnt_contents'] = $this->deleteByUserWindow('cnt_contents', $userId, $baseline, $cutoff);
             $deleted['sys_templates'] = $this->deleteByUserWindow('sys_templates', $userId, $baseline, $cutoff);
             $deleted['ctr_contents'] = $this->deleteByUserWindow('ctr_contents', $userId, $baseline, $cutoff);
