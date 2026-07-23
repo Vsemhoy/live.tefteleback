@@ -32,6 +32,7 @@ class TskTask extends Model
         'is_expert',
         'is_hidden',
         'closed_at',
+        'meta',
     ];
 
     protected $casts = [
@@ -44,6 +45,7 @@ class TskTask extends Model
         'is_expert' => 'boolean',
         'is_hidden' => 'boolean',
         'closed_at' => 'datetime',
+        'meta' => 'array',
     ];
 
     public function assigneeContact(): BelongsTo
@@ -64,6 +66,11 @@ class TskTask extends Model
     public function children(): HasMany
     {
         return $this->hasMany(self::class, 'parent_task_id')->orderBy('sort_order')->orderBy('created_at');
+    }
+
+    public function checklistItems(): HasMany
+    {
+        return $this->hasMany(TskChecklistItem::class, 'task_id')->orderBy('sort_order')->orderBy('created_at');
     }
 
     public function logs(): HasMany

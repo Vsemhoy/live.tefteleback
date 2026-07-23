@@ -89,6 +89,10 @@ Route::middleware('auth.jwt')->group(function () {
     Route::put('/tasker/tasks/{id}', [TaskerController::class, 'update']);
     Route::delete('/tasker/tasks/{id}', [TaskerController::class, 'destroy']);
 
+    Route::post('/tasker/checklist-items', [TaskerController::class, 'storeChecklistItem']);
+    Route::put('/tasker/checklist-items/{id}', [TaskerController::class, 'updateChecklistItem']);
+    Route::delete('/tasker/checklist-items/{id}', [TaskerController::class, 'destroyChecklistItem']);
+
     Route::get('/tasker/spans', [TaskerController::class, 'spans']);
     Route::post('/tasker/spans', [TaskerController::class, 'storeSpan']);
     Route::put('/tasker/spans/{id}', [TaskerController::class, 'updateSpan']);
@@ -97,6 +101,7 @@ Route::middleware('auth.jwt')->group(function () {
 
     Route::get('/tasker/logs', [TaskerController::class, 'logs']);
     Route::post('/tasker/logs', [TaskerController::class, 'storeLog']);
+    Route::post('/tasker/logs/bulk-delete', [TaskerController::class, 'bulkDestroyLogs']);
     Route::put('/tasker/logs/{id}', [TaskerController::class, 'updateLog']);
     Route::delete('/tasker/logs/{id}', [TaskerController::class, 'destroyLog']);
 

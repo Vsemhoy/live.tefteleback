@@ -47,6 +47,30 @@ class CtrContent extends Model
     {
         return $this->belongsTo(CtrContact::class, 'contact_id');
     }
+
+    public function mentionLinks()
+    {
+        return $this->hasMany(CtrContentMention::class, 'content_id')
+            ->with('contact:id,name,nickname,avatar,avatar_url')
+            ->orderBy('sort_order')
+            ->orderBy('created_at');
+    }
+
+    public function mentionedContacts()
+    {
+        return $this->belongsToMany(CtrContact::class, 'ctr_content_mentions', 'content_id', 'contact_id')
+            ->withPivot(['id', 'role', 'sort_order'])
+            ->withTimestamps()
+            ->orderBy('ctr_content_mentions.sort_order');
+    }
+
+    public function tags()
+    {
+        return $this->belongsToMany(EvtTag::class, 'ctr_content_tags', 'content_id', 'tag_id')
+            ->select(['id', 'name', 'slug', 'color', 'bgcolor'])
+            ->withTimestamps();
+    }
+
     public function taskerTask(): BelongsTo
     {
         return $this->belongsTo(TskTask::class, 'tasker_task_id');

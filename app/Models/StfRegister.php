@@ -23,6 +23,7 @@ class StfRegister extends Model
         'return_expected',
         'amount',
         'note',
+        'content_md',
         'details',
         'status',
         'priority',
@@ -126,4 +127,3 @@ class StfRegister extends Model
         };
     }
 }
-

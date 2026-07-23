@@ -94,6 +94,22 @@ class EvtEvent extends Model
         return $this->belongsTo(StfThing::class, 'thing_id');
     }
 
+    public function eventContacts()
+    {
+        return $this->hasMany(EvtEventContact::class, 'event_id')
+            ->with('contact:id,name,nickname,avatar,avatar_url')
+            ->orderBy('sort_order')
+            ->orderBy('created_at');
+    }
+
+    public function contacts()
+    {
+        return $this->belongsToMany(CtrContact::class, 'evt_event_contacts', 'event_id', 'contact_id')
+            ->withPivot(['id', 'role', 'note', 'sort_order'])
+            ->withTimestamps()
+            ->orderBy('evt_event_contacts.sort_order');
+    }
+
     public function contentBlocks()
     {
         return $this->hasMany(CntContent::class, 'source_id')

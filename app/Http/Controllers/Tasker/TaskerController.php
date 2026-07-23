@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\CtrContact;
 use App\Models\PrjProject;
 use App\Models\TskBlocker;
+use App\Models\TskChecklistItem;
 use App\Models\TskLog;
 use App\Models\TskSpan;
 use App\Models\TskTask;
@@ -22,7 +23,7 @@ class TaskerController extends Controller
         $query = TskTask::query()
             ->where('user_id', $request->user()->id)
             ->with(['assigneeContact:id,name,nickname,avatar,avatar_url', 'parent:id,title,status_id', 'project:id,title,code,color,status_id,is_hidden,show_in_tasker'])
-            ->withCount(['children', 'logs', 'spans'])
+            ->withCount(['checklistItems', 'children', 'logs', 'spans'])
             ->when(! $request->boolean('include_expert'), fn ($q) => $q->where('is_expert', false))
             ->when(! $request->boolean('include_hidden'), fn ($q) => $q->where('is_hidden', false));
 
@@ -81,6 +82,7 @@ class TaskerController extends Controller
             'assigneeContact:id,name,nickname,avatar,avatar_url',
             'parent:id,title,status_id', 'project:id,title,code,color,status_id,is_hidden,show_in_tasker',
             'children.assigneeContact:id,name,nickname,avatar,avatar_url',
+            'checklistItems',
             'logs.blocker:id,title,description,occurrence_count',
             'logs.timerEntry:id,started_at,ended_at,duration_min,note',
             'timerEntries:id,started_at,ended_at,duration_min,entry_type,time_type,note',
@@ -142,6 +144,37 @@ class TaskerController extends Controller
     public function destroy(Request $request, string $id)
     {
         $this->taskForUser($request, $id)->delete();
+
+        return response()->json(['id' => $id]);
+    }
+
+    public function storeChecklistItem(Request $request)
+    {
+        $data = $this->validateChecklistItem($request);
+        $task = $this->taskForUser($request, $data['task_id']);
+
+        $item = TskChecklistItem::create($this->checklistItemPayload($data, $task->user_id));
+
+        return response()->json($this->presentChecklistItem($item), 201);
+    }
+
+    public function updateChecklistItem(Request $request, string $id)
+    {
+        $item = TskChecklistItem::query()->where('user_id', $request->user()->id)->findOrFail($id);
+        $data = $this->validateChecklistItem($request, false);
+
+        if (isset($data['task_id'])) {
+            $this->taskForUser($request, $data['task_id']);
+        }
+
+        $item->update($this->checklistItemPayload(array_merge($item->toArray(), $data), $request->user()->id, false, array_keys($data)));
+
+        return response()->json($this->presentChecklistItem($item->fresh()));
+    }
+
+    public function destroyChecklistItem(Request $request, string $id)
+    {
+        TskChecklistItem::query()->where('user_id', $request->user()->id)->findOrFail($id)->delete();
 
         return response()->json(['id' => $id]);
     }
@@ -290,6 +323,22 @@ class TaskerController extends Controller
             $query->where('kind', $request->get('kind'));
         }
 
+        if ($request->filled('page')) {
+            $perPage = min(max((int) $request->get('per_page', 50), 1), 100);
+            $page = max((int) $request->get('page', 1), 1);
+            $logs = $query->paginate($perPage, ['*'], 'page', $page);
+
+            return response()->json([
+                'data' => $logs->getCollection()->map(fn (TskLog $log) => $this->presentLog($log))->values(),
+                'meta' => [
+                    'current_page' => $logs->currentPage(),
+                    'last_page' => $logs->lastPage(),
+                    'per_page' => $logs->perPage(),
+                    'total' => $logs->total(),
+                ],
+            ]);
+        }
+
         $logs = $query->limit(min(max((int) $request->get('limit', 200), 1), 500))->get();
 
         return response()->json($logs->map(fn (TskLog $log) => $this->presentLog($log))->values());
@@ -331,6 +380,39 @@ class TaskerController extends Controller
         TskLog::query()->where('user_id', $request->user()->id)->findOrFail($id)->delete();
 
         return response()->json(['id' => $id]);
+    }
+
+    public function bulkDestroyLogs(Request $request)
+    {
+        $data = $request->validate([
+            'ids' => ['nullable', 'array'],
+            'ids.*' => ['string', 'size:26'],
+            'delete_all' => ['nullable', 'boolean'],
+            'task_id' => ['nullable', 'string', 'size:26'],
+            'kind' => ['nullable', 'string', 'in:all,note,status_change,report,blocker,clarification'],
+        ]);
+
+        $query = TskLog::query()->where('user_id', $request->user()->id);
+
+        if (! ($data['delete_all'] ?? false)) {
+            $ids = array_values(array_filter($data['ids'] ?? []));
+            if (! $ids) {
+                return response()->json(['deleted_count' => 0]);
+            }
+            $query->whereIn('id', $ids);
+        } else {
+            if (! empty($data['task_id'])) {
+                $query->where('task_id', $data['task_id']);
+            }
+
+            if (! empty($data['kind']) && $data['kind'] !== 'all') {
+                $query->where('kind', $data['kind']);
+            }
+        }
+
+        $deleted = $query->delete();
+
+        return response()->json(['deleted_count' => $deleted]);
     }
 
     public function blockers(Request $request)
@@ -389,6 +471,18 @@ class TaskerController extends Controller
             'is_expert' => ['nullable', 'boolean'],
             'is_hidden' => ['nullable', 'boolean'],
             'closed_at' => ['nullable', 'date'],
+            'meta' => ['nullable', 'array'],
+        ]);
+    }
+
+    private function validateChecklistItem(Request $request, bool $creating = true): array
+    {
+        return $request->validate([
+            'task_id' => [$creating ? 'required' : 'sometimes', 'string', 'size:26'],
+            'title' => [$creating ? 'required' : 'sometimes', 'string', 'max:255'],
+            'status_id' => ['nullable', 'integer', 'between:20,39'],
+            'sort_order' => ['nullable', 'integer'],
+            'meta' => ['nullable', 'array'],
         ]);
     }
 
@@ -451,6 +545,27 @@ class TaskerController extends Controller
             'is_expert' => (bool) ($data['is_expert'] ?? false),
             'is_hidden' => (bool) ($data['is_hidden'] ?? false),
             'closed_at' => $data['closed_at'] ?? null,
+            'meta' => $data['meta'] ?? null,
+        ];
+
+        if (! $creating) {
+            $allowed = array_fill_keys($keys, true);
+            $allowed['user_id'] = true;
+            return array_filter($payload, fn ($value, $key) => isset($allowed[$key]), ARRAY_FILTER_USE_BOTH);
+        }
+
+        return $payload;
+    }
+
+    private function checklistItemPayload(array $data, string $userId, bool $creating = true, array $keys = []): array
+    {
+        $payload = [
+            'user_id' => $userId,
+            'task_id' => $data['task_id'],
+            'title' => $data['title'],
+            'status_id' => (int) ($data['status_id'] ?? 20),
+            'sort_order' => (int) ($data['sort_order'] ?? 0),
+            'meta' => $data['meta'] ?? null,
         ];
 
         if (! $creating) {
@@ -634,15 +749,19 @@ class TaskerController extends Controller
             'is_expert' => $task->is_expert,
             'is_hidden' => $task->is_hidden,
             'closed_at' => optional($task->closed_at)->toISOString(),
+            'meta' => $task->meta,
             'created_at' => optional($task->created_at)->toISOString(),
             'updated_at' => optional($task->updated_at)->toISOString(),
-            'children_count' => $task->children_count ?? null,
+            'children_count' => $task->checklist_items_count ?? $task->children_count ?? null,
+            'checklist_items_count' => $task->checklist_items_count ?? null,
             'logs_count' => $task->logs_count ?? null,
             'spans_count' => $task->spans_count ?? null,
         ];
 
         if ($full) {
-            $payload['children'] = $task->children->map(fn (TskTask $child) => $this->presentTask($child))->values();
+            $checklistItems = $task->relationLoaded('checklistItems') ? $task->checklistItems : collect();
+            $payload['checklist_items'] = $checklistItems->map(fn (TskChecklistItem $item) => $this->presentChecklistItem($item))->values();
+            $payload['children'] = $payload['checklist_items'];
             $payload['logs'] = $task->logs->map(fn (TskLog $log) => $this->presentLog($log))->values();
             $payload['timer_entries'] = $task->timerEntries->map(fn ($entry) => [
                 'id' => $entry->id,
@@ -657,6 +776,22 @@ class TaskerController extends Controller
         }
 
         return $payload;
+    }
+
+    private function presentChecklistItem(TskChecklistItem $item): array
+    {
+        return [
+            'id' => $item->id,
+            'user_id' => $item->user_id,
+            'task_id' => $item->task_id,
+            'parent_task_id' => $item->task_id,
+            'title' => $item->title,
+            'status_id' => $item->status_id,
+            'sort_order' => $item->sort_order,
+            'meta' => $item->meta,
+            'created_at' => optional($item->created_at)->toISOString(),
+            'updated_at' => optional($item->updated_at)->toISOString(),
+        ];
     }
 
     private function presentSpan(TskSpan $span): array

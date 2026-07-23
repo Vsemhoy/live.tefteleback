@@ -3,11 +3,13 @@
 namespace App\Http\Controllers\Eventor;
 
 use App\Http\Controllers\Controller;
+use App\Models\CtrContact;
 use App\Models\EvtCategory;
 use App\Models\EvtEvent;
 use App\Models\EvtSection;
 use App\Models\EvtTag;
 use App\Models\EvtType;
+use App\Models\PrjProject;
 use App\Models\StfThing;
 use App\Models\User;
 use Carbon\Carbon;
@@ -56,6 +58,7 @@ class EventorApiController extends Controller
             'section:id,name,color,bgcolor,icon',
             'primaryContent',
             'tags',
+            'eventContacts',
             'thing:id,name,last_category_id',
         ])
             ->where('user_id', $user->id)
@@ -117,6 +120,7 @@ class EventorApiController extends Controller
             'section:id,name,color,bgcolor,icon',
             'primaryContent',
             'tags',
+            'eventContacts',
             'thing:id,name,last_category_id',
         ])
             ->where('user_id', $user->id)
@@ -149,6 +153,7 @@ class EventorApiController extends Controller
             'parent:id,name,occurred_at',
             'children:id,name,parent_id,occurred_at',
             'primaryContent',
+            'eventContacts',
             'thing:id,name,last_category_id',
         ])->where('user_id', $user->id)->where('id', $id)->first();
 
@@ -169,6 +174,7 @@ class EventorApiController extends Controller
             'section:id,name,color,bgcolor,icon',
             'primaryContent',
             'tags',
+            'eventContacts',
         ])
             ->where('id', $id)
             ->first();
@@ -297,7 +303,7 @@ class EventorApiController extends Controller
     //         'metadata' => 'nullable|string|max:25',
     //         'type_id' => 'nullable|exists:evt_types,id',
     //         'category_id' => 'nullable|exists:evt_categories,id',
-    //         'project_id' => 'nullable|exists:projects,id',
+    //         'project_id' => 'nullable|exists:prj_projects,id',
     //         'location' => 'nullable|string|max:50',
     //         'client' => 'nullable|string|max:120',
     //         'format' => 'sometimes|integer|between:1,3', // 1-md, 2-text, 3-code
@@ -386,7 +392,7 @@ class EventorApiController extends Controller
             'metadata' => 'nullable|string|max:25',
             'type_id' => 'nullable|exists:evt_types,id',
             'category_id' => 'nullable|exists:evt_categories,id',
-            'project_id' => 'nullable|exists:projects,id',
+            'project_id' => 'nullable|string|size:26',
             'exploiter_event_id' => 'nullable|string|size:26',
             'thing_id' => 'nullable|string|size:26',
             'location' => 'nullable|string|max:50',
@@ -400,6 +406,13 @@ class EventorApiController extends Controller
             'is_blurred' => 'nullable|boolean',
             'tag_ids' => 'nullable|array',
             'tag_ids.*' => 'string|max:26|exists:evt_tags,id',
+            'contact_ids' => 'nullable|array',
+            'contact_ids.*' => 'string|size:26',
+            'contacts' => 'nullable|array',
+            'contacts.*.contact_id' => 'required_with:contacts|string|size:26',
+            'contacts.*.role' => 'nullable|string|max:32',
+            'contacts.*.note' => 'nullable|string',
+            'contacts.*.sort_order' => 'nullable|integer',
             'occurred_at' => 'nullable|date',
         ];
 
@@ -425,6 +438,20 @@ class EventorApiController extends Controller
             return response()->json([
                 'status' => 0,
                 'message' => 'Thing is invalid or not accessible',
+            ], 422);
+        }
+
+        if (! empty($validated['project_id']) && ! $this->projectBelongsToUser($user->id, $validated['project_id'])) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Project is invalid or not accessible',
+            ], 422);
+        }
+
+        if (! $this->eventContactsBelongToUser($user->id, $this->eventContactIds($validated))) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'One or more contacts are invalid or not accessible',
             ], 422);
         }
 
@@ -497,10 +524,14 @@ class EventorApiController extends Controller
                     $item->tags()->sync($allowedTagIds);
                 }
 
+                if (array_key_exists('contact_ids', $validated) || array_key_exists('contacts', $validated)) {
+                    $this->syncEventContacts($item, $validated, $user->id);
+                }
+
                 return response()->json([
                     'status' => 1,
                     'message' => 'Event created successfully',
-                    'content' => $item->fresh(['primaryContent', 'tags', 'thing']),
+                    'content' => $item->fresh(['primaryContent', 'tags', 'eventContacts', 'thing']),
                     'duration' => round(microtime(true) - LARAVEL_START, 3),
                 ], 201);
             }
@@ -564,8 +595,12 @@ class EventorApiController extends Controller
                 $event->tags()->sync($allowedTagIds);
             }
 
+            if (array_key_exists('contact_ids', $validated) || array_key_exists('contacts', $validated)) {
+                $this->syncEventContacts($event, $validated, $user->id);
+            }
+
             $event->refresh();
-            $event->load(['primaryContent', 'thing']);
+            $event->load(['primaryContent', 'tags', 'eventContacts', 'thing']);
 
             return response()->json([
                 'status' => 1,
@@ -636,7 +671,7 @@ class EventorApiController extends Controller
             'metadata' => 'nullable|string|max:25',
             'type_id' => 'nullable|exists:evt_types,id',
             'category_id' => 'nullable|exists:evt_categories,id',
-            'project_id' => 'nullable|exists:projects,id',
+            'project_id' => 'nullable|string|size:26',
             'exploiter_event_id' => 'nullable|string|size:26',
             'thing_id' => 'nullable|string|size:26',
             'location' => 'nullable|string|max:50',
@@ -650,6 +685,13 @@ class EventorApiController extends Controller
             'is_blurred' => 'nullable|boolean',
             'tag_ids' => 'nullable|array',
             'tag_ids.*' => 'string|max:26|exists:evt_tags,id',
+            'contact_ids' => 'nullable|array',
+            'contact_ids.*' => 'string|size:26',
+            'contacts' => 'nullable|array',
+            'contacts.*.contact_id' => 'required_with:contacts|string|size:26',
+            'contacts.*.role' => 'nullable|string|max:32',
+            'contacts.*.note' => 'nullable|string',
+            'contacts.*.sort_order' => 'nullable|integer',
             'occurred_at' => 'nullable|date',
             
         ];
@@ -677,6 +719,18 @@ class EventorApiController extends Controller
                 'message' => 'Thing is invalid or not accessible',
             ], 422);
         }
+        if (! empty($validated['project_id']) && ! $this->projectBelongsToUser($user->id, $validated['project_id'])) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'Project is invalid or not accessible',
+            ], 422);
+        }
+        if (! $this->eventContactsBelongToUser($user->id, $this->eventContactIds($validated))) {
+            return response()->json([
+                'status' => 0,
+                'message' => 'One or more contacts are invalid or not accessible',
+            ], 422);
+        }
         $fillableFields = [
             'section_id',
             'name',
@@ -686,12 +740,14 @@ class EventorApiController extends Controller
             'category_id',
             'project_id',
             'exploiter_event_id',
+            'thing_id',
             'location',
             'client',
             'format',
             'status',
             'is_locked',
             'is_pinned',
+            'is_expert',
             'is_blurred',
             'occurred_at',
             'parent_id',
@@ -734,8 +790,12 @@ class EventorApiController extends Controller
                 $event->tags()->sync($allowedTagIds);
             }
 
+            if (array_key_exists('contact_ids', $validated) || array_key_exists('contacts', $validated)) {
+                $this->syncEventContacts($event, $validated, $user->id);
+            }
+
             $event->refresh();
-            $event->load(['primaryContent', 'thing']);
+            $event->load(['primaryContent', 'tags', 'eventContacts', 'thing']);
 
             return response()->json([
                 'status' => 1,
@@ -767,6 +827,97 @@ class EventorApiController extends Controller
         StfThing::where('user_id', $userId)
             ->where('id', $event->thing_id)
             ->update(['last_category_id' => $data['category_id']]);
+    }
+
+    private function projectBelongsToUser(string $userId, string $projectId): bool
+    {
+        return PrjProject::query()
+            ->where('user_id', $userId)
+            ->where('id', $projectId)
+            ->exists();
+    }
+
+    private function eventContactsBelongToUser(string $userId, array $contactIds): bool
+    {
+        $contactIds = array_values(array_unique(array_filter($contactIds)));
+        if ($contactIds === []) {
+            return true;
+        }
+
+        return CtrContact::query()
+            ->where('user_id', $userId)
+            ->whereIn('id', $contactIds)
+            ->count() === count($contactIds);
+    }
+
+    private function eventContactIds(array $data): array
+    {
+        $ids = $data['contact_ids'] ?? [];
+
+        foreach (($data['contacts'] ?? []) as $contact) {
+            if (is_array($contact) && ! empty($contact['contact_id'])) {
+                $ids[] = $contact['contact_id'];
+            }
+        }
+
+        return $ids;
+    }
+
+    private function syncEventContacts(EvtEvent $event, array $data, string $userId): void
+    {
+        $contacts = [];
+
+        foreach (($data['contact_ids'] ?? []) as $index => $contactId) {
+            $contacts[] = [
+                'contact_id' => $contactId,
+                'role' => 'participant',
+                'note' => null,
+                'sort_order' => $index,
+            ];
+        }
+
+        foreach (($data['contacts'] ?? []) as $index => $contact) {
+            if (! is_array($contact) || empty($contact['contact_id'])) {
+                continue;
+            }
+
+            $contacts[] = [
+                'contact_id' => $contact['contact_id'],
+                'role' => $contact['role'] ?? 'participant',
+                'note' => $contact['note'] ?? null,
+                'sort_order' => (int) ($contact['sort_order'] ?? $index),
+            ];
+        }
+
+        $seen = [];
+        $contacts = array_values(array_filter($contacts, function ($contact) use (&$seen) {
+            $key = $contact['contact_id'].':'.($contact['role'] ?? '');
+            if (isset($seen[$key])) {
+                return false;
+            }
+
+            $seen[$key] = true;
+            return true;
+        }));
+
+        DB::table('evt_event_contacts')
+            ->where('user_id', $userId)
+            ->where('event_id', $event->id)
+            ->delete();
+
+        foreach ($contacts as $contact) {
+            DB::table('evt_event_contacts')->insert([
+                'id' => (string) Ulid::generate(),
+                'user_id' => $userId,
+                'event_id' => $event->id,
+                'contact_id' => $contact['contact_id'],
+                'role' => $contact['role'],
+                'note' => $contact['note'],
+                'sort_order' => $contact['sort_order'],
+                'created_at' => now(),
+                'updated_at' => now(),
+            ]);
+        }
     }
 
     public function saveSectionAction(Request $request): JsonResponse

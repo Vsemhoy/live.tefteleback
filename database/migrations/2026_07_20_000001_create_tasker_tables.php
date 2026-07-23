@@ -41,6 +41,7 @@ return new class extends Migration
                 $table->boolean('is_pinned')->default(false);
                 $table->boolean('is_expert')->default(false);
                 $table->timestamp('closed_at')->nullable();
+                $table->json('meta')->nullable();
                 $table->timestamps();
                 $table->softDeletes();
 
@@ -80,6 +81,25 @@ return new class extends Migration
                 $table->index(['user_id', 'kind', 'planned_start_at'], 'tsk_spans_user_kind_planned_idx');
                 $table->index(['user_id', 'ended_at', 'auto_stop_at'], 'tsk_spans_user_auto_stop_idx');
                 $table->index(['task_id', 'kind', 'started_at'], 'tsk_spans_task_kind_started_idx');
+
+                $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
+                $table->foreign('task_id')->references('id')->on('tsk_tasks')->cascadeOnDelete();
+            });
+        }
+        if (! Schema::hasTable('tsk_checklist_items')) {
+            Schema::create('tsk_checklist_items', function (Blueprint $table) {
+                $table->char('id', 26)->primary();
+                $table->char('user_id', 26);
+                $table->char('task_id', 26);
+                $table->string('title', 255);
+                $table->unsignedSmallInteger('status_id')->default(20);
+                $table->integer('sort_order')->default(0);
+                $table->json('meta')->nullable();
+                $table->timestamps();
+                $table->softDeletes();
+
+                $table->index(['user_id', 'task_id', 'sort_order'], 'tsk_checklist_user_task_sort_idx');
+                $table->index(['task_id', 'status_id'], 'tsk_checklist_task_status_idx');
 
                 $table->foreign('user_id')->references('id')->on('users')->cascadeOnDelete();
                 $table->foreign('task_id')->references('id')->on('tsk_tasks')->cascadeOnDelete();
@@ -129,8 +149,9 @@ return new class extends Migration
             });
         }
 
-        Schema::dropIfExists('tsk_spans');
         Schema::dropIfExists('tsk_logs');
+        Schema::dropIfExists('tsk_checklist_items');
+        Schema::dropIfExists('tsk_spans');
         Schema::dropIfExists('tsk_tasks');
         Schema::dropIfExists('tsk_blockers');
     }

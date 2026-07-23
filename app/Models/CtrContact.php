@@ -26,6 +26,8 @@ class CtrContact extends Model
         'met_at',
         'met_precision',
         'met_context',
+        'birthday_on',
+        'birthday_precision',
         'last_contact_at',
         'details',
         'is_pinned',
@@ -35,6 +37,7 @@ class CtrContact extends Model
 
     protected $casts = [
         'met_at' => 'date',
+        'birthday_on' => 'date',
         'last_contact_at' => 'datetime',
         'details' => 'array',
         'is_pinned' => 'boolean',
@@ -68,6 +71,22 @@ class CtrContact extends Model
             ->orderByDesc('created_at');
     }
 
+    public function eventorEvents()
+    {
+        return $this->belongsToMany(EvtEvent::class, 'evt_event_contacts', 'contact_id', 'event_id')
+            ->withPivot(['id', 'role', 'note', 'sort_order'])
+            ->withTimestamps()
+            ->orderByDesc('evt_events.occurred_at');
+    }
+
+    public function mentionedContents()
+    {
+        return $this->belongsToMany(CtrContent::class, 'ctr_content_mentions', 'contact_id', 'content_id')
+            ->withPivot(['id', 'role', 'sort_order'])
+            ->withTimestamps()
+            ->orderByDesc('ctr_contents.occurred_at');
+    }
+
     public function relationsA(): HasMany
     {
         return $this->hasMany(CtrRelation::class, 'contact_a_id');
@@ -83,4 +102,3 @@ class CtrContact extends Model
         return $query->where('is_archived', false);
     }
 }
-
