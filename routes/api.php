@@ -24,6 +24,7 @@ use App\Http\Controllers\Factor\FactorController;
 use App\Http\Controllers\Tasker\TaskerController;
 use App\Http\Controllers\Projector\ProjectorController;
 use App\Http\Controllers\System\TimerController;
+use App\Http\Controllers\Booker\BookerController;
 
 Route::post('/auth/login', [AuthController::class, 'login']);
 Route::post('/auth/demo', [DemoAuthController::class, 'login']);
@@ -116,6 +117,35 @@ Route::middleware('auth.jwt')->group(function () {
     Route::put('/factor/facts/{id}', [FactorController::class, 'update']);
     Route::delete('/factor/facts/{id}', [FactorController::class, 'destroy']);
     Route::post('/factor/facts/{id}/pin', [FactorController::class, 'togglePin']);
+
+    Route::get('/booker/spaces', [BookerController::class, 'spaces']);
+    Route::post('/booker/spaces', [BookerController::class, 'storeSpace']);
+    Route::put('/booker/spaces/{id}', [BookerController::class, 'updateSpace']);
+    Route::delete('/booker/spaces/{id}', [BookerController::class, 'destroySpace']);
+
+    Route::get('/booker/books', [BookerController::class, 'books']);
+    Route::post('/booker/books', [BookerController::class, 'storeBook']);
+    Route::get('/booker/books/{id}', [BookerController::class, 'showBook']);
+    Route::put('/booker/books/{id}', [BookerController::class, 'updateBook']);
+    Route::delete('/booker/books/{id}', [BookerController::class, 'destroyBook']);
+
+    Route::get('/booker/pages', [BookerController::class, 'pages']);
+    Route::post('/booker/pages', [BookerController::class, 'storePage']);
+    Route::post('/booker/pages/reorder', [BookerController::class, 'reorderPages']);
+    Route::get('/booker/pages/{id}', [BookerController::class, 'showPage']);
+    Route::put('/booker/pages/{id}', [BookerController::class, 'updatePage']);
+    Route::delete('/booker/pages/{id}', [BookerController::class, 'destroyPage']);
+
+    Route::post('/booker/block-groups', [BookerController::class, 'storeBlockGroup']);
+    Route::post('/booker/block-groups/reorder', [BookerController::class, 'reorderBlocks']);
+    Route::put('/booker/block-groups/{id}', [BookerController::class, 'updateBlockGroup']);
+    Route::delete('/booker/block-groups/{id}', [BookerController::class, 'destroyBlockGroup']);
+    Route::get('/booker/block-groups/{id}/versions', [BookerController::class, 'versions']);
+    Route::post('/booker/block-groups/{id}/versions', [BookerController::class, 'storeVersion']);
+    Route::post('/booker/block-groups/{id}/publish/{blockId}', [BookerController::class, 'publishVersion']);
+    Route::put('/booker/blocks/{id}', [BookerController::class, 'updateBlock']);
+    Route::delete('/booker/blocks/{id}', [BookerController::class, 'destroyBlock']);
+
     Route::get('/contactor/contacts', [ContactorController::class, 'contacts']);
     Route::post('/contactor/contacts', [ContactorController::class, 'storeContact']);
     Route::get('/contactor/contacts/{id}', [ContactorController::class, 'showContact']);
