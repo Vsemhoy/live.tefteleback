@@ -16,7 +16,7 @@ class BookerController extends Controller
 {
     private const VISIBILITY = ['private', 'friends', 'registered', 'public'];
     private const STRUCTURE_MODES = ['tree', 'flat'];
-    private const BLOCK_TYPES = ['markdown', 'excalidraw', 'code', 'callout', 'divider', 'embed', 'checklist'];
+    private const BLOCK_TYPES = ['markdown', 'excalidraw', 'svg', 'table', 'code', 'callout', 'divider', 'embed', 'checklist'];
     private const BLOCK_ROLES = ['content', 'note', 'source', 'todo', 'ai_response'];
     private const BLOCK_STATUSES = ['draft', 'published', 'archived'];
 
@@ -383,6 +383,8 @@ class BookerController extends Controller
             'structure_mode' => ['nullable', Rule::in(self::STRUCTURE_MODES)],
             'visibility' => ['nullable', Rule::in(self::VISIBILITY)],
             'cover_color' => ['nullable', 'string', 'max:24'],
+            'cover_svg_url' => ['nullable', 'string'],
+            'cover_svg_text' => ['nullable', 'string'],
             'export_settings' => ['nullable', 'array'],
             'sort_order' => ['nullable', 'integer'],
             'is_archived' => ['nullable', 'boolean'],
@@ -457,6 +459,8 @@ class BookerController extends Controller
             'structure_mode' => $data['structure_mode'] ?? 'tree',
             'visibility' => $data['visibility'] ?? 'private',
             'cover_color' => $data['cover_color'] ?? null,
+            'cover_svg_url' => $data['cover_svg_url'] ?? null,
+            'cover_svg_text' => $data['cover_svg_text'] ?? null,
             'export_settings' => $data['export_settings'] ?? null,
             'sort_order' => (int) ($data['sort_order'] ?? 0),
             'is_archived' => (bool) ($data['is_archived'] ?? false),
@@ -616,6 +620,8 @@ class BookerController extends Controller
             'structure_mode' => $book->structure_mode,
             'visibility' => $book->visibility,
             'cover_color' => $book->cover_color,
+            'cover_svg_url' => $book->cover_svg_url,
+            'cover_svg_text' => $book->cover_svg_text,
             'export_settings' => $book->export_settings,
             'sort_order' => $book->sort_order,
             'is_archived' => $book->is_archived,

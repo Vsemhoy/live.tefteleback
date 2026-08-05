@@ -38,6 +38,8 @@ return new class extends Migration
                 $table->string('structure_mode', 16)->default('tree')->index();
                 $table->string('visibility', 16)->default('private')->index();
                 $table->string('cover_color', 24)->nullable();
+                $table->text('cover_svg_url')->nullable();
+                $table->longText('cover_svg_text')->nullable();
                 $table->json('export_settings')->nullable();
                 $table->integer('sort_order')->default(0)->index();
                 $table->boolean('is_archived')->default(false)->index();

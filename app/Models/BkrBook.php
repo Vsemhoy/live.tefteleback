@@ -23,6 +23,8 @@ class BkrBook extends Model
         'structure_mode',
         'visibility',
         'cover_color',
+        'cover_svg_url',
+        'cover_svg_text',
         'export_settings',
         'sort_order',
         'is_archived',
